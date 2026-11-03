@@ -131,6 +131,7 @@ label.field{display:flex;flex-direction:column;gap:6px;font-weight:600;font-size
 .mate-h .n{font-family:var(--f-display);font-weight:800;font-size:18px;line-height:1}
 .mate-h .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
 .mate .give{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.mate-hidden{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;aspect-ratio:18/10;border-radius:6px;background:var(--surface-2);border:1px dashed var(--line);color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
 .minimat{display:block;width:100%;height:auto;border-radius:6px;background:var(--mat)}
 .boardwrap{background:var(--mat);border-radius:14px;padding:10px;box-shadow:var(--shadow);position:relative}
 .board{display:block;width:100%;height:auto;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -343,7 +344,6 @@ const FIREBASE_CONFIG={
   projectId: "broken-square-game",
   appId: "1:878956195149:web:19ebab76e9299825e65b04"
 };
-  
 
 /* ============ QR join links ============ */
 const baseURL=()=>location.origin+location.pathname;
@@ -904,15 +904,15 @@ function bannerHTML(team,ownDone){
   if(ownDone) return `<div class="banner wait"><b>Your square is complete.</b> <span class="muted">Your team finishes only when all five are complete.</span></div>`;
   return "";
 }
-function matesHTML(team,mySeat,pcsFor,nickFor){
+function matesHTML(team,mySeat,pcsFor,nickFor,showBoards){
   let h="";
   for(let n=1;n<=5;n++){
     if(n===mySeat) continue;
     const pcs=pcsFor(n); const st=squareStatus(pcs);
     const target=S.selected&&canPlay();
     h+=`<div class="mate ${target?"target":""}" data-give="${n}" ${target?`role="button" tabindex="0" aria-label="Give selected piece to seat ${n}"`:""}>
-      <div class="mate-h"><span class="n">${n}</span><span class="nm">${esc(nickFor(n))}</span>${st.done?`<span class="pill good">Square</span>`:""}</div>
-      ${boardSVG(pcs,{mini:true})}
+      <div class="mate-h"><span class="n">${n}</span><span class="nm">${esc(nickFor(n))}</span>${showBoards&&st.done?`<span class="pill good">Square</span>`:""}</div>
+      ${showBoards?boardSVG(pcs,{mini:true}):`<div class="mate-hidden" aria-hidden="true"><svg viewBox="0 0 40 26" width="40" height="26"><rect x="1" y="1" width="38" height="24" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M1.8 2.5 20 15 38.2 2.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><span>Table hidden</span></div>`}
       ${target?`<span class="give">Give here</span>`:""}</div>`;
   }
   return h;
@@ -929,7 +929,7 @@ function updatePlay(){
   const t=S.me.team, seat=S.me.seat;
   const mine=piecesOf(t,seat); const st=squareStatus(mine);
   $("#banner").innerHTML=bannerHTML(t,st.done);
-  $("#mates").innerHTML=matesHTML(t,seat,n=>piecesOf(t,n),n=>{const d=S.seats["t"+t+"s"+n];return d&&d.uid?d.nick:"Empty seat";});
+  $("#mates").innerHTML=matesHTML(t,seat,n=>piecesOf(t,n),n=>{const d=S.seats["t"+t+"s"+n];return d&&d.uid?d.nick:"Empty seat";},!!(S.session&&S.session.showTables));
   $("#boardwrap").innerHTML=boardSVG(mine,{portrait:isPortrait(),interactive:true,playable:canPlay(),id:"myboard"});
   $("#actions").innerHTML=actionsHTML(mine.length);
 }
@@ -958,7 +958,7 @@ function updateSolo(){
   $("#seattabs").innerHTML=tabs;
   const mine=soloPieces(seat); const st=squareStatus(mine);
   $("#banner").innerHTML=bannerHTML(1,st.done);
-  $("#mates").innerHTML=matesHTML(1,seat,n=>soloPieces(n),()=>"");
+  $("#mates").innerHTML=matesHTML(1,seat,n=>soloPieces(n),()=>"",true);
   $("#boardwrap").innerHTML=boardSVG(mine,{portrait:isPortrait(),interactive:true,playable:true,id:"myboard"});
   $("#actions").innerHTML=actionsHTML(mine.length);
 }
@@ -1090,6 +1090,7 @@ function updateHost(){
   if(st==="running") controls=`<button class="btn" data-act="status" data-st="paused">Pause</button><button class="btn" data-act="ask" data-what="end">End round</button>`;
   if(st==="paused") controls=`<button class="btn primary" data-act="status" data-st="running">Resume</button><button class="btn" data-act="ask" data-what="end">End round</button>`;
   if(st!=="ended") controls+=`<button class="btn" data-act="add-team">Add a team</button>`;
+  controls+=`<button class="btn" data-act="toggle-tables" aria-pressed="${!!s.showTables}">Teammates' tables: <b>${s.showTables?"Visible":"Hidden"}</b></button>`;
   controls+=`<button class="btn ${st==="ended"?"primary":""}" data-act="ask" data-what="reset">${st==="ended"?"Reset for a new round":"Reset all teams"}</button>`;
   if(st==="ended"||st==="lobby") controls+=`<button class="btn ghost danger" data-act="ask" data-what="delete">Delete session</button>`;
   const C=S.confirm||"";
@@ -1179,6 +1180,7 @@ document.addEventListener("click",async e=>{
   if(a==="do-reset-team"){ S.confirm=null; update(); await resetTeam(+b.dataset.team); return; }
   if(a==="clear-square"){ clearMySquare(); return; }
   if(a==="add-team"){ addTeam(); return; }
+  if(a==="toggle-tables"){ const v=!S.session.showTables; R(`sessions/${S.code}/showTables`).set(v).then(()=>toast(v?"Players can now see their teammates' tables.":"Teammates' tables are hidden from players.")).catch(()=>toast("Couldn't change that setting.")); return; }
   if(a==="host-tab"){ S.hostTab=b.dataset.tab; update(); return; }
   if(a==="obs-from-host"){ S.obsTeam=+b.dataset.team; go("observe"); return; }
   if(a==="obs-team"){ S.obsTeam=+b.dataset.team; render(); return; }
