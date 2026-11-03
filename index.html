@@ -1,0 +1,1272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Broken Squares</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: a workshop table. The cutting mat (board) is the hero; everything else is quiet chrome around it. */
+:root{
+  --bg:#ECF0EE; --surface:#FFFFFF; --surface-2:#F5F8F6; --ink:#17201D; --muted:#5A6863; --line:#D3DBD7;
+  --accent:#1E6A51; --accent-ink:#FFFFFF; --accent-soft:#DCEDE5;
+  --mat:#1D3A31; --mat-line:rgba(255,255,255,.09); --mat-line-strong:rgba(255,255,255,.2); --mat-ink:#CFE6DC;
+  --good:#1F8A55; --good-soft:#DDF3E7; --warn:#A86100; --warn-soft:#FBEBD2; --bad:#B4372B; --bad-soft:#F8E0DC;
+  --shadow:0 1px 2px rgba(20,30,25,.06),0 6px 18px rgba(20,30,25,.06);
+  --f-display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --f-body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F1513; --surface:#172019; --surface-2:#1B2621; --ink:#E4ECE8; --muted:#94A49D; --line:#2A3631;
+  --accent:#6FD1A8; --accent-ink:#0B1A14; --accent-soft:#1D3A2F;
+  --mat:#16302A; --mat-line:rgba(255,255,255,.07); --mat-line-strong:rgba(255,255,255,.17); --mat-ink:#BFDCCF;
+  --good:#5BD394; --good-soft:#173527; --warn:#F0B35A; --warn-soft:#3A2B13; --bad:#F08A7E; --bad-soft:#3D1D19;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 22px rgba(0,0,0,.25); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1513; --surface:#172019; --surface-2:#1B2621; --ink:#E4ECE8; --muted:#94A49D; --line:#2A3631;
+  --accent:#6FD1A8; --accent-ink:#0B1A14; --accent-soft:#1D3A2F;
+  --mat:#16302A; --mat-line:rgba(255,255,255,.07); --mat-line-strong:rgba(255,255,255,.17); --mat-ink:#BFDCCF;
+  --good:#5BD394; --good-soft:#173527; --warn:#F0B35A; --warn-soft:#3A2B13; --bad:#F08A7E; --bad-soft:#3D1D19;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 22px rgba(0,0,0,.25); color-scheme:dark}
+
+*{box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{margin:0}
+[hidden]{display:none!important}
+img{max-width:100%}
+.conn{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);z-index:70;background:var(--warn);color:#fff;font-weight:700;font-size:13px;padding:6px 14px;border-radius:999px;box-shadow:var(--shadow)}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+button,input,textarea,select{font:inherit;color:inherit}
+.shell{max-width:1200px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 48px}
+.topbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-block:6px 14px;border-bottom:1px solid var(--line);margin-bottom:18px}
+.brand{display:flex;align-items:center;gap:10px;background:none;border:0;padding:0;cursor:pointer}
+.brand-mark{width:30px;height:30px}
+.brand b{font-family:var(--f-display);font-weight:900;font-size:24px;letter-spacing:.02em;text-transform:uppercase;line-height:1}
+.topbar .grow{flex:1}
+.crumb{color:var(--muted);font-size:13px}
+h1,h2,h3{text-wrap:balance;margin:0}
+h1{font-family:var(--f-display);font-weight:900;text-transform:uppercase;font-size:clamp(44px,8vw,84px);line-height:.9;letter-spacing:.01em}
+h2{font-family:var(--f-display);font-weight:800;text-transform:uppercase;font-size:28px;line-height:1;letter-spacing:.02em}
+h3{font-size:15px;font-weight:700}
+.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+p{margin:0;max-width:65ch}
+.stack{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:var(--shadow)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:9px 14px;font-weight:600;cursor:pointer;min-height:40px;text-decoration:none}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btn.ghost{background:transparent;border-color:transparent}
+.btn.sm{min-height:32px;padding:5px 10px;font-size:13px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+input[type=text],input[type=number],textarea,select{background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:9px 11px;width:100%}
+textarea{min-height:64px;resize:vertical}
+label.field{display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:13px}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:var(--surface-2);border:1px solid var(--line);white-space:nowrap}
+.pill.good{background:var(--good-soft);color:var(--good);border-color:transparent}
+.pill.warn{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.pill.bad{background:var(--bad-soft);color:var(--bad);border-color:transparent}
+.pill.live{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.dot{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none;border:1px solid rgba(0,0,0,.25)}
+
+/* Home */
+.hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:28px;align-items:center;margin-bottom:28px}
+.hero .lede{font-size:17px;color:var(--muted);margin-top:14px}
+.hero-mat{background:var(--mat);border-radius:14px;padding:14px;box-shadow:var(--shadow)}
+.entries{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:28px}
+.entry{display:flex;flex-direction:column;gap:10px;text-align:left;cursor:pointer;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:var(--shadow);min-width:0}
+.entry:hover:not(:disabled){border-color:var(--accent)}
+.entry:disabled{cursor:not-allowed;opacity:.55}
+.entry .k{font-family:var(--f-display);font-weight:800;font-size:22px;text-transform:uppercase;letter-spacing:.02em}
+.entry .go{margin-top:auto;color:var(--accent);font-weight:700;font-size:14px}
+.rules{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.rulelist{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.notice{border-radius:8px;padding:10px 14px;background:var(--warn-soft);color:var(--ink);border:1px solid transparent;font-size:14px}
+.notice.info{background:var(--accent-soft)}
+.credit{margin-top:28px;font-size:12px;color:var(--muted)}
+
+/* Sessions, seats */
+.list{display:flex;flex-direction:column;gap:8px}
+.sess{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.sess .grow{flex:1;min-width:0}
+.teams{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.team{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.team-h{display:flex;align-items:center;gap:8px}
+.team-h b{flex:1}
+.seats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.seat{border:1px solid var(--line);border-radius:7px;padding:6px 4px;background:var(--surface-2);font-size:11px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;min-width:0}
+.seat .n{font-family:var(--f-display);font-weight:800;font-size:20px;line-height:1}
+.seat .who{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.seat.taken{cursor:default;background:var(--surface)}
+.seat.mine{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+.seat:disabled{cursor:default}
+.seat.done{background:var(--good-soft)}
+
+/* Play */
+.playhead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.playhead .grow{flex:1}
+.clock{font-family:var(--f-mono);font-weight:700;font-size:26px;letter-spacing:.02em}
+.silence{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.silence span{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:5px 10px;border-radius:6px;background:var(--surface);border:1px dashed var(--muted);color:var(--muted)}
+.banner{border-radius:10px;padding:12px 16px;margin-bottom:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-weight:600}
+.banner.wait{background:var(--surface);border:1px solid var(--line)}
+.banner.go{background:var(--accent);color:var(--accent-ink)}
+.banner.win{background:var(--good);color:#fff}
+.banner .big{font-family:var(--f-display);font-weight:900;font-size:28px;text-transform:uppercase;line-height:1}
+.mates{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.mate{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px;text-align:left;display:flex;flex-direction:column;gap:6px;min-width:0;cursor:default}
+.mate.target{cursor:pointer;border-style:dashed;border-color:var(--accent)}
+.mate.hover{background:var(--accent-soft);border-style:solid}
+.mate-h{display:flex;align-items:center;gap:6px;font-size:12px;min-width:0}
+.mate-h .n{font-family:var(--f-display);font-weight:800;font-size:18px;line-height:1}
+.mate-h .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
+.mate .give{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+.minimat{display:block;width:100%;height:auto;border-radius:6px;background:var(--mat)}
+.boardwrap{background:var(--mat);border-radius:14px;padding:10px;box-shadow:var(--shadow);position:relative}
+.board{display:block;width:100%;height:auto;touch-action:none;user-select:none;-webkit-user-select:none}
+.board .pc{cursor:grab;outline:none}
+.board .pc.locked{cursor:default}
+.board .pc:focus-visible polygon{stroke:#fff;stroke-width:.12}
+.board .pc.sel polygon{stroke:#fff;stroke-width:.12;filter:drop-shadow(0 0 .15px #fff)}
+.board .pc.dragging{cursor:grabbing;pointer-events:none;opacity:.92}
+.board .pc.fresh polygon{animation:fresh 1.4s ease-out 2}
+@keyframes fresh{0%{stroke:#fff;stroke-width:.25}100%{stroke-width:.05}}
+@media (prefers-reduced-motion:reduce){.board .pc.fresh polygon{animation:none}}
+.actionbar{position:sticky;bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:5;margin-top:10px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px;box-shadow:var(--shadow);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.actionbar .lbl{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-right:4px}
+.actionbar .sep{width:1px;align-self:stretch;background:var(--line);margin-inline:4px}
+.hint{font-size:13px;color:var(--muted)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.tab{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:600;display:flex;gap:6px;align-items:center}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* Observer / host */
+.cols{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;align-items:start}
+.boards5{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.bcard{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.tbl-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+td.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.log{display:flex;flex-direction:column;gap:4px;max-height:280px;overflow:auto;font-size:13px}
+.log div{display:flex;gap:8px}
+.log .t{font-family:var(--f-mono);color:var(--muted);flex:none}
+.q{display:flex;flex-direction:column;gap:6px;padding-block:10px;border-top:1px solid var(--line)}
+.q:first-child{border-top:0;padding-top:0}
+.q .qn{font-weight:600;font-size:14px}
+.tally{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.tally button{display:flex;justify-content:space-between;align-items:center;border:1px solid var(--line);background:var(--surface-2);border-radius:8px;padding:8px 10px;cursor:pointer;font-size:13px;font-weight:600}
+.tally b{font-family:var(--f-mono);font-size:16px}
+.bar{height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden;border:1px solid var(--line)}
+.bar i{display:block;height:100%;background:var(--accent)}
+.prog{display:flex;gap:4px}
+.prog i{flex:1;height:8px;border-radius:2px;background:var(--surface-2);border:1px solid var(--line)}
+.prog i.on{background:var(--good);border-color:var(--good)}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px;border:1px solid var(--bad);border-radius:8px;background:var(--bad-soft)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-size:14px;z-index:50;max-width:calc(100% - 32px)}
+.qrbox{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.qr{background:#fff;border-radius:10px;padding:8px;line-height:0;flex:none}
+.qr svg{width:100%;height:auto;display:block}
+.qrov{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:calc(20px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overflow:auto}
+.qrov .qr{width:min(70vmin,460px);padding:16px;box-shadow:var(--shadow)}
+.qrov .bigcode{font-family:var(--f-mono);font-weight:700;font-size:clamp(28px,6vw,48px);letter-spacing:.12em}
+.qrov .close{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:max(12px,env(safe-area-inset-right,0px))}
+.linkline{font-family:var(--f-mono);font-size:12px;word-break:break-all;color:var(--muted);user-select:all}
+.debrief ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px}
+.solved{animation:pop .5s ease-out}
+@keyframes pop{0%{transform:scale(.96)}60%{transform:scale(1.02)}100%{transform:none}}
+
+@media (max-width:860px){
+  .hero{grid-template-columns:1fr}
+  .entries{grid-template-columns:1fr}
+  .rules{grid-template-columns:1fr}
+  .cols{grid-template-columns:1fr}
+}
+@media (max-width:560px){
+  .mates{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .clock{font-size:22px}
+  h2{font-size:24px}
+}
+</style>
+</head>
+<body>
+
+<div class="shell" id="app"></div>
+<div class="toast" id="toast" hidden></div>
+<div class="qrov" id="qrov" hidden role="dialog" aria-modal="true" aria-label="Scan to join"></div>
+<div class="conn" id="conn" hidden role="status">Reconnecting… your moves will sync when you're back online</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<script>
+(function(){
+"use strict";
+/* ============ Geometry ============ */
+// Pieces in inches, from the five 6"x6" squares in the original instructions.
+const SHAPES={
+  A:[[0,0],[3,0],[3,3]],
+  B:[[0,0],[3,0],[6,3],[6,6],[3,6],[0,3]],
+  C:[[0,0],[3,3],[3,6],[0,6]],
+  D:[[0,0],[6,0],[3,3]],
+  E:[[0,0],[3,0],[3,6],[0,6]],
+  F:[[0,0],[3,0],[0,6]],
+  G:[[0,0],[3,0],[3,3],[0,3]],
+  H:[[0,0],[3,0],[3,3],[6,3],[6,6],[3,6],[0,3]],
+  I:[[0,0],[6,0],[6,6]],
+  J:[[0,0],[6,6],[3,6],[0,3]]
+};
+const SHAPE_NAMES={A:"small triangle",B:"six-sided piece",C:"four-sided piece",D:"wide triangle",E:"rectangle",F:"long triangle",G:"small square",H:"notched piece",I:"large triangle",J:"diagonal strip"};
+// Same 15 pieces either way. Only one split makes all five squares: B+A+A, G+H+A, I+J+A, C+C+D, E+F+F.
+// "trap": seat 3 opens I, D, A, A, which already makes a square, but a dead-end one. The team can only
+// finish if seat 3 breaks it up and gives pieces away. No other seat can make a square on its own.
+const DEALS={
+  trap:{1:["H","E","C"],2:["A","A","J"],3:["I","D","A","A"],4:["F","C","G"],5:["B","F"]},
+  classic:{1:["I","H","E"],2:["A","A","A","C"],3:["A","J"],4:["D","F"],5:["G","B","F","C"]}
+};
+const TRAP_SEAT=3;
+const GOOD_SQUARES=new Set(["AAB","AGH","AIJ","CCD","EFF"]);
+const recipe=pcs=>pcs.map(p=>p.letter).sort().join("");
+const B={W:18,H:10,FX:1,FY:2,SPLIT:8}; // canonical board: build area left (x<8), pieces tray right
+const SETS=[
+  {name:"Amber",c:"#F2B33D"},{name:"Cobalt",c:"#5D88F2"},{name:"Coral",c:"#F0765C"},{name:"Lilac",c:"#B590F2"},
+  {name:"Citron",c:"#D6DE5C"},{name:"Sky",c:"#62C6EA"},{name:"Rose",c:"#EE84B4"},{name:"Mint",c:"#86E2B6"},
+  {name:"Sand",c:"#E8C99A"},{name:"Cherry",c:"#E2605F"}
+];
+const setOf=t=>SETS[(t-1)%SETS.length];
+const teamName=t=>"Team "+t;
+
+const shapeCache={};
+function shapeOf(p){
+  const key=p.letter+p.rot+(p.flip?1:0);
+  if(shapeCache[key]) return shapeCache[key];
+  let pts=SHAPES[p.letter].map(([x,y])=>[p.flip?-x:x,y]);
+  for(let i=0;i<p.rot;i++) pts=pts.map(([x,y])=>[-y,x]);
+  const mx=Math.min(...pts.map(q=>q[0])), my=Math.min(...pts.map(q=>q[1]));
+  pts=pts.map(([x,y])=>[x-mx,y-my]);
+  const w=Math.max(...pts.map(q=>q[0])), h=Math.max(...pts.map(q=>q[1]));
+  // area centroid for the label
+  let a=0,cx=0,cy=0;
+  for(let i=0;i<pts.length;i++){const [x0,y0]=pts[i],[x1,y1]=pts[(i+1)%pts.length];const f=x0*y1-x1*y0;a+=f;cx+=(x0+x1)*f;cy+=(y0+y1)*f;}
+  a/=2; cx/=(6*a); cy/=(6*a);
+  return shapeCache[key]={pts,w,h,cx,cy};
+}
+function pip(x,y,pts){let ins=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const [xi,yi]=pts[i],[xj,yj]=pts[j];if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi)) ins=!ins;}return ins;}
+// Sample grid offsets chosen so no sample point ever lies on a piece edge.
+function squareStatus(pcs){
+  const shaped=pcs.map(p=>{const s=shapeOf(p);return s.pts.map(([a,b])=>[a+p.x,b+p.y]);});
+  const inFrame=pts=>pts.every(([x,y])=>x>=B.FX-1e-6&&x<=B.FX+6+1e-6&&y>=B.FY-1e-6&&y<=B.FY+6+1e-6);
+  let filled=0,bad=false;
+  for(let i=0;i<24;i++)for(let j=0;j<24;j++){
+    const px=B.FX+.07+i*.25, py=B.FY+.19+j*.25; let c=0;
+    for(const pts of shaped){ if(pip(px,py,pts)){ c++; if(!inFrame(pts)) bad=true; } }
+    if(c>=1) filled++; if(c!==1) bad=true;
+  }
+  return {done:!bad&&filled===576, fill:filled/576};
+}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+function clampCanon(p){
+  const s=shapeOf(p);
+  if(p.x+s.w/2<B.SPLIT){ p.x=clamp(p.x,0,B.SPLIT-s.w); p.y=clamp(p.y,1,9-s.h); }
+  else { p.x=clamp(p.x,B.SPLIT,B.W-s.w); p.y=clamp(p.y,0,B.H-s.h); }
+  return p;
+}
+function toDisp(p,portrait){
+  if(!portrait) return [p.x,p.y];
+  const s=shapeOf(p);
+  return (p.x+s.w/2<B.SPLIT)?[p.x+1,p.y-1]:[p.x-8,p.y+8];
+}
+function fromDisp(p,dx,dy,portrait){
+  const s=shapeOf(p); let x,y;
+  if(!portrait){x=dx;y=dy;}
+  else if(dy+s.h/2<8){x=dx-1;y=dy+1; x=Math.min(x,B.SPLIT-s.w);}
+  else {x=dx+8;y=dy-8; x=Math.max(x,B.SPLIT);}
+  return clampCanon({...p,x:Math.round(x),y:Math.round(y)});
+}
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function rectsOverlap(a,b){return a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h;}
+function findSpot(p,occ){
+  for(let r=0;r<4;r++){
+    const q={...p,rot:(p.rot+r)%4}; const s=shapeOf(q);
+    for(let y=0;y<=B.H-s.h;y++)for(let x=B.SPLIT;x<=B.W-s.w;x++){
+      const rc={x,y,w:s.w,h:s.h};
+      if(!occ.some(o=>rectsOverlap(o,rc))) return {rot:q.rot,x,y};
+    }
+  }
+  const s=shapeOf(p); const k=occ.length%4;
+  return {rot:p.rot,x:B.W-s.w-k,y:B.H-s.h-k*.0};
+}
+function trayRects(pcs){return pcs.filter(p=>p.x+shapeOf(p).w/2>=B.SPLIT).map(p=>{const s=shapeOf(p);return{x:p.x,y:p.y,w:s.w,h:s.h};});}
+function teamTemplate(team,deal){
+  const ENVELOPES=DEALS[deal]||DEALS.trap;
+  const out=[]; let idx=0;
+  for(let seat=1;seat<=5;seat++){
+    const rng=mulberry(team*977+seat*131+7); const occ=[];
+    ENVELOPES[seat].forEach((letter,i)=>{
+      const p={team,idx:idx++,letter,home:seat,owner:seat,rot:Math.floor(rng()*4),flip:rng()<.35,z:i+1};
+      const spot=findSpot(p,occ); p.rot=spot.rot; p.x=spot.x; p.y=spot.y;
+      const s=shapeOf(p); occ.push({x:p.x,y:p.y,w:s.w,h:s.h});
+      out.push(p);
+    });
+  }
+  return out;
+}
+const pkey=(team,idx)=>"t"+team+"p"+idx;
+
+/* ============ Helpers ============ */
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt=ms=>{if(ms==null||ms<0) ms=0; const s=Math.floor(ms/1000); return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");};
+let toastT; function toast(msg){const t=$("#toast");t.textContent=msg;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,3200);}
+function lsGet(k){try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+async function pool(tasks,n){let i=0;const run=async()=>{while(i<tasks.length){const t=tasks[i++];await t();}};await Promise.all(Array.from({length:Math.min(n,tasks.length)},run));}
+function code4(){const a="ABCDEFGHJKMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<4;i++)s+=a[Math.floor(Math.random()*a.length)];return s;}
+
+/* ============ Firebase settings (filled in by IT — see SETUP.md) ============ */
+const FIREBASE_CONFIG={
+  apiKey: "",
+  authDomain: "",
+  databaseURL: "",
+  projectId: "",
+  appId: ""
+};
+
+/* ============ QR join links ============ */
+const baseURL=()=>location.origin+location.pathname;
+const joinLink=(code,team)=>baseURL()+"?join="+code+(team?"&t="+team:"");
+const qrCache={};
+function qrSVG(text){
+  if(qrCache[text]) return qrCache[text];
+  if(typeof window.qrcode!=="function") return `<div style="width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;color:#333;font:12px sans-serif">QR unavailable</div>`;
+  const q=window.qrcode(0,"M"); q.addData(text); q.make();
+  return qrCache[text]=q.createSvgTag({cellSize:4,margin:2,scalable:true,alt:"QR code to join"});
+}
+function parseJoinParam(){
+  try{
+    const p=new URLSearchParams(location.search); const c=(p.get("join")||"").toUpperCase();
+    if(!/^[A-Z0-9]{4}$/.test(c)) return null;
+    const t=parseInt(p.get("t")||"",10);
+    return {code:c,team:t>0&&t<100?t:null};
+  }catch(e){return null;}
+}
+function showQR(team){
+  const s=S.session; if(!s) return;
+  const url=joinLink(s.id,team); const ov=$("#qrov");
+  const local=location.protocol==="file:"||/^(localhost|127\.)/.test(location.hostname);
+  ov.innerHTML=`<button class="btn close" data-act="qr-close">Close</button>
+    <div><span class="eyebrow">${esc(s.title)}</span><h2 style="margin-top:6px">${team?`Scan to join ${teamName(team)}`:"Scan to join"}</h2></div>
+    <div class="qr">${qrSVG(url)}</div>
+    <div class="bigcode">${esc(s.id)}${team?` · T${team}`:""}</div>
+    <p class="muted">Or open the game page, choose <b>Join a session</b> and type code <b>${esc(s.id)}</b>.</p>
+    ${local?`<p class="notice small">This page is open from your own computer, so phones can't reach this link. Use the copy your IT team put on the web.</p>`:""}
+    <div class="row" style="justify-content:center"><button class="btn" data-act="copy-link" data-url="${esc(url)}">Copy link</button></div>
+    <div class="linkline">${esc(url)}</div>`;
+  ov.hidden=false; $(".close",ov).focus();
+  try{ if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{}); }catch(e){}
+}
+function hideQR(){ $("#qrov").hidden=true; try{ if(document.fullscreenElement) document.exitFullscreen().catch(()=>{}); }catch(e){} }
+async function openJoinLink(j){
+  if(!S.liveReady){ S.code=j.code; S.joinTeam=j.team; go("join"); return; }
+  const last=lsGet("bs.me");
+  if(last&&last.code===j.code&&!last.host){ await resumeLive(last); if(S.view==="play"||S.view==="observe") return; }
+  S.code=j.code; S.joinTeam=j.team; S.session=S.sessions.find(x=>x.id===j.code)||null;
+  subscribeSession(j.code,{all:true}); go("join");
+}
+
+function accessIssue(){
+  if(S.setupNeeded) return {title:"This copy of the game isn't connected to its database yet",detail:"Live sessions need the Firebase settings filled in. Your IT team can follow SETUP.md, which takes about 30 minutes. Solo practice works now."};
+  if(!S.liveChecked) return {wait:true,title:"Connecting…",detail:"Getting you a place at the table."};
+  if(S.authError) return {title:"Couldn't connect to the game",detail:"Check that your phone is online, then reload the page. If it keeps happening, tell the facilitator (error: "+S.authError+")."};
+  return null;
+}
+function accessCard(code){
+  const a=accessIssue(); if(!a) return "";
+  return `<div class="panel stack" style="border-color:${a.wait?"var(--line)":"var(--warn)"};max-width:620px"><h3>${esc(a.title)}</h3><p class="small">${esc(a.detail)}</p>${code?`<p class="small muted">Session code: <span class="mono" style="font-weight:700;color:var(--ink)">${esc(code)}</span></p>`:""}</div>`;
+}
+
+/* ============ State ============ */
+const S={
+  view:"home", db:null, uid:null, liveReady:false, liveChecked:false, setupNeeded:false, authError:null,
+  sessions:[], code:null, session:null, seats:{}, pieces:{}, events:[], notes:{},
+  me:null, // {team, seat} or {team, observer:true}
+  obsTeam:1, selected:null, fresh:{}, drag:null, pendingRender:false,
+  solo:null, hostTab:"teams", confirm:null, nick:lsGet("bs.nick")||""
+};
+let unsubs=[]; function clearSubs(){unsubs.forEach(u=>{try{u();}catch(e){}});unsubs=[];}
+
+/* ============ Firebase wiring ============ */
+const FB={rdb:null,offset:0,connected:null,everConnected:false};
+const now=()=>Date.now()+(FB.offset||0); // server-corrected clock, so every phone counts down together
+const R=path=>FB.rdb.ref(path);
+function listen(path,cb){
+  const r=R(path);
+  const h=r.on("value",s=>cb(s.val()),err=>{console.warn(path,err);});
+  return ()=>r.off("value",h);
+}
+const isHost=()=>!!(S.session&&S.session.hosts&&S.session.hosts[S.uid]);
+function renderConn(){
+  const el=$("#conn"); if(!el) return;
+  el.hidden=!(FB.everConnected&&FB.connected===false);
+}
+(async function boot(){
+  const cfgOk=!!(FIREBASE_CONFIG.apiKey&&FIREBASE_CONFIG.databaseURL);
+  if(!cfgOk){ S.setupNeeded=true; S.liveChecked=true; render(); return; }
+  if(typeof firebase==="undefined"){ S.authError="firebase-sdk-not-loaded"; S.liveChecked=true; render(); return; }
+  try{
+    firebase.initializeApp(FIREBASE_CONFIG);
+    FB.rdb=firebase.database(); S.db=true;
+    R(".info/serverTimeOffset").on("value",s=>{FB.offset=s.val()||0;});
+    R(".info/connected").on("value",s=>{FB.connected=!!s.val(); if(FB.connected) FB.everConnected=true; renderConn();});
+    const cur=firebase.auth().currentUser;
+    const cred=cur?{user:cur}:await firebase.auth().signInAnonymously();
+    S.uid=cred.user.uid; S.liveReady=true;
+  }catch(e){ console.warn(e); S.authError=(e&&e.code)||"unknown"; }
+  S.liveChecked=true;
+  if(S.liveReady){
+    R("sessions").orderByChild("createdAt").limitToLast(40).on("value",snap=>{
+      const v=snap.val()||{};
+      S.sessions=Object.entries(v).map(([id,d])=>({id,...d})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+      if(S.view==="join"&&S.code) update(); else if(["join","host-list","home"].includes(S.view)) render(); else update();
+    },e=>console.warn(e));
+    const j=parseJoinParam();
+    if(j){ await openJoinLink(j); return; }
+    const last=lsGet("bs.me"); if(last&&last.code){ await resumeLive(last); if(S.view!=="home") return; }
+  }
+  render();
+})();
+// Show the join screen straight away for a QR link, before the connection answers.
+(function(){ const j=parseJoinParam(); if(j){ S.code=j.code; S.joinTeam=j.team; S.view="join"; } })();
+render();
+
+/* ============ Store operations ============ */
+function piecesOf(team,seat){return Object.values(S.pieces).filter(p=>p.team===team&&(seat==null||p.owner===seat));}
+function soloPieces(seat){return Object.values(S.solo.pieces).filter(p=>seat==null||p.owner===seat);}
+function curPieces(){return S.view==="solo"?S.solo.pieces:S.pieces;}
+const piecePath=p=>`pieces/${S.code}/t${p.team}/p${p.idx}`;
+
+async function movePiece(k,patch){
+  const map=curPieces(); const p=map[k]; if(!p) return;
+  const next=clampCanon({...p,...patch});
+  map[k]=next;
+  afterLocalChange(next.team,next.owner);
+  if(S.view==="solo") return;
+  try{ await R(piecePath(next)).update({x:next.x,y:next.y,rot:next.rot,flip:!!next.flip,z:next.z||0,movedAt:now()}); }
+  catch(e){ toast("That move didn't save. Check your connection and try again."); }
+}
+// After the mover's own change, log a square formed / broken and team finish.
+function afterLocalChange(team,seat){
+  const solo=S.view==="solo";
+  const mine=solo?soloPieces(seat):piecesOf(team,seat);
+  const done=squareStatus(mine).done;
+  const key=team+":"+seat;
+  S._sq=S._sq||{};
+  const was=S._sq[key]; S._sq[key]=done;
+  if(was!==undefined&&was!==done) logEvent({team,type:done?"square":"unsquare",seat});
+  if(done){
+    const all=[1,2,3,4,5].every(s=>squareStatus(solo?soloPieces(s):piecesOf(team,s)).done);
+    if(all&&!teamDoneAt(team)) logEvent({team,type:"done",seat});
+  }
+  if(solo&&!S.solo.startedAt) S.solo.startedAt=Date.now();
+  update();
+}
+function logEvent(ev){
+  if(S.view==="solo"){ ev.t=Date.now(); S.solo.events.push(ev); if(ev.type==="done"){S.solo.doneAt=ev.t;} return; }
+  ev.t=now();
+  S.events.push(ev);
+  R(`events/${S.code}/t${ev.team}`).push(ev).catch(()=>{});
+}
+async function givePiece(k,toSeat){
+  const map=curPieces(); const p=map[k]; if(!p||p.owner===toSeat) return;
+  const from=p.owner;
+  const theirs=(S.view==="solo"?soloPieces(toSeat):piecesOf(p.team,toSeat));
+  const spot=findSpot(p,trayRects(theirs));
+  const z=Math.max(0,...Object.values(map).map(q=>q.z||0))+1;
+  const next={...p,owner:toSeat,rot:spot.rot,x:spot.x,y:spot.y,z};
+  map[k]=next; S.selected=null;
+  logEvent({team:p.team,type:"give",from,to:toSeat,letter:p.letter});
+  afterLocalChange(p.team,from);
+  S._sq[p.team+":"+toSeat]=squareStatus(S.view==="solo"?soloPieces(toSeat):piecesOf(p.team,toSeat)).done;
+  if(S.view==="solo"){ S.fresh[k]=Date.now(); update(); return; }
+  toast("Given to seat "+toSeat);
+  try{ await R(piecePath(next)).update({owner:toSeat,x:next.x,y:next.y,rot:next.rot,z,movedAt:now(),givenAt:now(),from}); }
+  catch(e){ toast("That give didn't save. Try again."); }
+}
+function teamDoneAt(team){
+  const evs=S.view==="solo"?S.solo.events:S.events;
+  const d=evs.filter(e=>e.team===team&&e.type==="done").sort((a,b)=>a.t-b.t)[0];
+  return d?d.t:null;
+}
+
+/* ============ Live session wiring ============ */
+function teamPieces(team,obj){
+  const out={}; Object.values(obj||{}).forEach(p=>{ if(p&&p.letter){ out[pkey(p.team||team,p.idx)]={...p,flip:!!p.flip}; } }); return out;
+}
+function subscribeSession(code,{team,all}){
+  clearSubs(); S.pieces={}; S.events=[]; S.seats={}; S.notes={}; S._sq={};
+  S.code=code; S.sessionMissing=false;
+  const loadT=setTimeout(()=>{ if(!S.session) toast("Still connecting to the session…"); },10000);
+  unsubs.push(()=>clearTimeout(loadT));
+  unsubs.push(listen(`sessions/${code}`,v=>{
+    clearTimeout(loadT);
+    if(v){S.session={id:code,...v};S.sessionMissing=false;} else {S.session=null;S.sessionMissing=true;}
+    update();
+  }));
+  unsubs.push(listen(`seats/${code}`,v=>{S.seats=v||{};update();}));
+  unsubs.push(listen(all?`pieces/${code}`:`pieces/${code}/t${team}`,v=>{
+    let next={};
+    if(all){ Object.entries(v||{}).forEach(([tk,obj])=>Object.assign(next,teamPieces(+tk.slice(1),obj))); }
+    else next=teamPieces(team,v);
+    Object.entries(next).forEach(([k,d])=>{
+      const old=S.pieces[k];
+      if(S.me&&!S.me.observer&&old&&old.owner!==d.owner&&d.owner===S.me.seat&&d.team===S.me.team) S.fresh[k]=Date.now();
+    });
+    if(S.drag&&S.pieces[S.drag.k]) next[S.drag.k]=S.pieces[S.drag.k];
+    S.pieces=next;
+    // seed square memory so we only log changes made after joining
+    Object.values(S.pieces).forEach(p=>{const key=p.team+":"+p.owner; if(S._sq[key]===undefined) S._sq[key]=squareStatus(piecesOf(p.team,p.owner)).done;});
+    if(S.drag) S.pendingRender=true; else update();
+  }));
+  unsubs.push(listen(all?`events/${code}`:`events/${code}/t${team}`,v=>{
+    const list=[];
+    if(all) Object.values(v||{}).forEach(tobj=>Object.values(tobj||{}).forEach(e=>list.push(e)));
+    else Object.values(v||{}).forEach(e=>list.push(e));
+    S.events=list.sort((a,b)=>a.t-b.t); update();
+  }));
+  unsubs.push(listen(`notes/${code}`,v=>{S.notes=v||{};updateNotesIfIdle(); if(S.view==="host") update(); else if(S.view==="observe") updateTally();}));
+}
+async function resumeLive(last){
+  try{
+    const s=await R(`sessions/${last.code}`).get(); if(!s.exists()) { lsSet("bs.me",null); return; }
+    S.session={id:last.code,...s.val()};
+    if(last.observer){ S.me={team:last.team,observer:true}; S.obsTeam=last.team; subscribeSession(last.code,{team:last.team}); go("observe"); return; }
+    if(last.host){ if(!(s.val().hosts||{})[S.uid]) return; S.me=null; subscribeSession(last.code,{all:true}); go("host"); return; }
+    const seat=await R(`seats/${last.code}/t${last.team}s${last.seat}`).get();
+    if(seat.exists()&&seat.val().uid===S.uid){ S.me={team:last.team,seat:last.seat}; subscribeSession(last.code,{team:last.team}); go("play"); }
+  }catch(e){console.warn(e);}
+}
+async function claimSeat(code,team,seat){
+  const nick=(S.nick||"").trim().slice(0,24); if(!nick){toast("Type your name first.");$("#nick")&&$("#nick").focus();return;}
+  lsSet("bs.nick",nick);
+  const ref=R(`seats/${code}/t${team}s${seat}`);
+  try{
+    const res=await ref.transaction(cur=>{ if(cur&&cur.uid&&cur.uid!==S.uid) return; return {uid:S.uid,nick,team,seat,at:now()}; });
+    if(!res.committed){toast("Someone just took that seat. Pick another.");return;}
+    if(S.me&&!S.me.observer&&S.code===code&&(S.me.team!==team||S.me.seat!==seat)) await releaseMySeat();
+    S.me={team,seat}; lsSet("bs.me",{code,team,seat});
+    subscribeSession(code,{team}); go("play");
+  }catch(e){console.warn(e);toast("Couldn't take the seat. Check your connection and try again.");}
+}
+async function releaseMySeat(){
+  if(!S.me||S.me.observer||!S.code) return;
+  try{ await R(`seats/${S.code}/t${S.me.team}s${S.me.seat}`).transaction(cur=>cur&&cur.uid===S.uid?null:undefined); }catch(e){}
+}
+async function freeSeat(id){
+  try{ await R(`seats/${S.code}/${id}`).remove(); toast("Seat freed. The player can scan again to rejoin."); }catch(e){toast("Couldn't free that seat.");}
+}
+function piecesFor(teams,deal){
+  const out={};
+  for(let t=1;t<=teams;t++){ const o={}; teamTemplate(t,deal).forEach(p=>o["p"+p.idx]={...p,movedAt:0}); out["t"+t]=o; }
+  return out;
+}
+async function createSession(title,teams,deal,pin){
+  try{
+    let code=code4();
+    for(let i=0;i<6;i++){ const ex=await R(`sessions/${code}`).get(); if(!ex.exists()) break; code=code4(); }
+    toast("Setting out envelopes…");
+    await R(`hostpins/${code}`).set(pin);
+    await R(`sessions/${code}`).set({title:title||"Broken Squares",teams,deal,status:"lobby",createdAt:now(),hosts:{[S.uid]:true}});
+    await R(`pieces/${code}`).set(piecesFor(teams,deal));
+    lsSet("bs.me",{code,host:true});
+    S.session={id:code,title:title||"Broken Squares",teams,deal,status:"lobby",hosts:{[S.uid]:true}};
+    subscribeSession(code,{all:true}); S.hostTab="teams"; go("host");
+  }catch(e){ console.warn(e); toast("Couldn't create the session. Check your connection and try again."); }
+}
+// Manage a session from another device with its facilitator PIN.
+async function claimHost(code,pin){
+  try{
+    await R(`hostclaims/${code}/${S.uid}`).set(pin);
+    await R(`sessions/${code}/hosts/${S.uid}`).set(true);
+    lsSet("bs.me",{code,host:true});
+    const s=await R(`sessions/${code}`).get(); S.session={id:code,...s.val()};
+    subscribeSession(code,{all:true}); S.hostTab="teams"; go("host");
+  }catch(e){ console.warn(e); toast("That code and PIN don't match a session."); }
+}
+async function addTeam(){
+  const n=(S.session.teams||0)+1;
+  try{
+    const o={}; teamTemplate(n,S.session.deal).forEach(p=>o["p"+p.idx]={...p,movedAt:0});
+    await R(`pieces/${S.code}/t${n}`).set(o);
+    await R(`sessions/${S.code}/teams`).set(n);
+    toast(teamName(n)+" added");
+  }catch(e){toast("Couldn't add a team.");}
+}
+async function setStatus(status){
+  const s=S.session; const patch={status};
+  if(status==="running"&&s.status==="lobby") patch.startedAt=now()+3000;
+  if(status==="running"&&s.status==="paused"){ const pausedFor=now()-(s.pausedAt||now()); patch.startedAt=(s.startedAt||now())+pausedFor; patch.pausedAt=null; }
+  if(status==="paused") patch.pausedAt=now();
+  if(status==="ended") patch.endedAt=now();
+  try{await R(`sessions/${S.code}`).update(patch);}catch(e){toast("Couldn't update the session.");}
+}
+async function resetSession(){
+  toast("Resetting envelopes…");
+  try{
+    await R(`sessions/${S.code}`).update({status:"lobby",startedAt:null,endedAt:null,pausedAt:null});
+    await R(`pieces/${S.code}`).set(piecesFor(S.session.teams,S.session.deal));
+    await R(`events/${S.code}`).remove();
+    await R(`notes/${S.code}`).remove();
+    S._sq={};
+    toast("Envelopes reset. Ready for a new round.");
+  }catch(e){toast("Reset didn't finish. Try again.");}
+}
+async function resetTeam(t){
+  toast("Resetting "+teamName(t)+"…");
+  try{
+    const o={}; teamTemplate(t,S.session.deal).forEach(p=>o["p"+p.idx]={...p,movedAt:0});
+    await R(`pieces/${S.code}/t${t}`).set(o);
+    await R(`events/${S.code}/t${t}`).remove();
+    await R(`notes/${S.code}/t${t}`).remove();
+    for(let n=1;n<=5;n++) delete S._sq[t+":"+n];
+    toast(teamName(t)+" is back to its starting envelopes.");
+  }catch(e){toast("Reset didn't finish. Try again.");}
+}
+async function deleteSession(){
+  const code=S.code;
+  try{
+    await R(`pieces/${code}`).remove(); await R(`events/${code}`).remove(); await R(`notes/${code}`).remove(); await R(`seats/${code}`).remove();
+    await R(`sessions/${code}`).remove();
+    clearSubs(); lsSet("bs.me",null); S.code=null; S.session=null; go("host-list"); toast("Session deleted.");
+  }catch(e){toast("Couldn't delete the session.");}
+}
+// Player: move every piece out of the build area back to your own tray. Ownership doesn't change.
+async function clearMySquare(){
+  if(!canPlay()) return;
+  const solo=S.view==="solo"; const seat=solo?S.solo.seat:S.me.seat; const team=solo?1:S.me.team;
+  const mine=solo?soloPieces(seat):piecesOf(team,seat);
+  const inBuild=mine.filter(p=>p.x+shapeOf(p).w/2<B.SPLIT);
+  if(!inBuild.length){toast("Your build area is already empty.");return;}
+  const occ=trayRects(mine); S.selected=null;
+  for(const p of inBuild){
+    const spot=findSpot(p,occ); const sh=shapeOf({...p,rot:spot.rot}); occ.push({x:spot.x,y:spot.y,w:sh.w,h:sh.h});
+    await movePiece(pkey(p.team,p.idx),{x:spot.x,y:spot.y,rot:spot.rot});
+  }
+}
+
+/* ============ Clock ============ */
+function clockFor(team){
+  if(S.view==="solo"){const so=S.solo; if(!so.startedAt) return {ms:0,label:"Ready"}; return {ms:(so.doneAt||Date.now())-so.startedAt,label:so.doneAt?"Solved":"Running"};}
+  const s=S.session; if(!s) return {ms:0,label:""};
+  if(!s.startedAt) return {ms:0,label:"Waiting for signal"};
+  const done=team?teamDoneAt(team):null;
+  const end=done||s.endedAt||(s.status==="paused"?s.pausedAt:null)||now();
+  const ms=end-s.startedAt;
+  if(ms<0) return {ms:0,label:"Starting in "+Math.ceil(-ms/1000),count:Math.ceil(-ms/1000)};
+  return {ms,label:done?"Team finished":s.status==="paused"?"Paused":s.status==="ended"?"Ended":"Running"};
+}
+function canPlay(){
+  if(S.view==="solo") return true;
+  const s=S.session; if(!s||s.status!=="running"||!s.startedAt) return false;
+  return now()>=s.startedAt;
+}
+let lastPlayable=null;
+setInterval(()=>{
+  document.querySelectorAll("[data-clock]").forEach(el=>{const t=+el.dataset.clock||null;const c=clockFor(t);el.textContent=fmt(c.ms);});
+  document.querySelectorAll("[data-clocklabel]").forEach(el=>{const t=+el.dataset.clocklabel||null;el.textContent=clockFor(t).label;});
+  const p=canPlay(); if(p!==lastPlayable){lastPlayable=p; if(S.view==="play") update();}
+},400);
+
+/* ============ Rendering: board SVGs ============ */
+function matGrid(w,h){
+  let g=`<rect x="0" y="0" width="${w}" height="${h}" fill="var(--mat)"/>`;
+  for(let x=1;x<w;x++) g+=`<line x1="${x}" y1="0" x2="${x}" y2="${h}" stroke="${x%3===0?"var(--mat-line-strong)":"var(--mat-line)"}" stroke-width="0.03"/>`;
+  for(let y=1;y<h;y++) g+=`<line x1="0" y1="${y}" x2="${w}" y2="${y}" stroke="${y%3===0?"var(--mat-line-strong)":"var(--mat-line)"}" stroke-width="0.03"/>`;
+  return g;
+}
+function pieceSVG(p,portrait,opts){
+  const s=shapeOf(p); const [dx,dy]=toDisp(p,portrait); const col=setOf(p.team).c;
+  const cls=["pc"]; if(opts.interactive){ if(S.selected===p.k) cls.push("sel"); if(S.fresh[p.k]&&Date.now()-S.fresh[p.k]<4000) cls.push("fresh"); if(!opts.playable) cls.push("locked"); }
+  const pts=s.pts.map(q=>q.join(",")).join(" ");
+  const label=opts.mini?"":`<text x="${s.cx}" y="${s.cy}" text-anchor="middle" dominant-baseline="central" font-family="JetBrains Mono, monospace" font-weight="700" font-size="0.62" fill="rgba(0,0,0,.55)" pointer-events="none">${p.home}</text>`;
+  const a11y=opts.interactive?` tabindex="0" role="button" aria-label="Piece marked ${p.home}, ${SHAPE_NAMES[p.letter]}"`:"";
+  return `<g class="${cls.join(" ")}" data-k="${p.k}" transform="translate(${dx} ${dy})"${a11y}><polygon points="${pts}" fill="${col}" stroke="rgba(0,0,0,.45)" stroke-width="0.05" stroke-linejoin="round"/>${label}</g>`;
+}
+function boardSVG(pcs,{portrait=false,interactive=false,mini=false,playable=true,id=""}={}){
+  const W=portrait?10:B.W, H=portrait?18:B.H;
+  const fx=portrait?2:B.FX, fy=portrait?1:B.FY;
+  const list=pcs.map(p=>({...p,k:p.k||pkey(p.team,p.idx)})).sort((a,b)=>(a.z||0)-(b.z||0));
+  let s=`<svg ${id?`id="${id}"`:""} class="${mini?"minimat":"board"}" viewBox="${mini?"0 0 18 10":`0 0 ${W} ${H}`}" xmlns="http://www.w3.org/2000/svg" ${mini?'aria-hidden="true"':'role="group" aria-label="Your table"'}>`;
+  s+=matGrid(mini?18:W,mini?10:H);
+  if(!mini){
+    const split=portrait?`<line x1="0" y1="8" x2="${W}" y2="8" stroke="var(--mat-line-strong)" stroke-width="0.04" stroke-dasharray="0.2 0.2"/>`:`<line x1="8" y1="0" x2="8" y2="${H}" stroke="var(--mat-line-strong)" stroke-width="0.04" stroke-dasharray="0.2 0.2"/>`;
+    s+=split;
+    s+=`<text x="${portrait?0.3:0.3}" y="${portrait?0.6:0.6}" font-size="0.42" fill="var(--mat-ink)" font-family="Public Sans, sans-serif" font-weight="700" letter-spacing="0.04">BUILD YOUR SQUARE</text>`;
+    s+=`<text x="${portrait?0.3:8.3}" y="${portrait?8.6:0.6}" font-size="0.42" fill="var(--mat-ink)" font-family="Public Sans, sans-serif" font-weight="700" letter-spacing="0.04">YOUR PIECES</text>`;
+  }
+  const ffx=mini?B.FX:fx, ffy=mini?B.FY:fy;
+  s+=`<rect x="${ffx}" y="${ffy}" width="6" height="6" fill="rgba(255,255,255,.04)" stroke="var(--mat-ink)" stroke-width="${mini?0.08:0.05}" stroke-dasharray="${mini?"0.3 0.2":"0.25 0.15"}"/>`;
+  if(!mini) s+=`<text x="${ffx+3}" y="${ffy+6.55}" text-anchor="middle" font-size="0.36" fill="var(--mat-ink)" font-family="JetBrains Mono, monospace">6 in × 6 in</text>`;
+  list.forEach(p=>{s+=pieceSVG(p,mini?false:portrait,{interactive,mini,playable});});
+  s+=`</svg>`; return s;
+}
+function isPortrait(){const w=Math.min(window.innerWidth,document.documentElement.clientWidth||window.innerWidth);return w<620;}
+
+/* ============ Views ============ */
+function go(v){S.view=v;S.selected=null;S.confirm=null;render();window.scrollTo(0,0);}
+function topbar(crumb,right=""){
+  return `<div class="topbar"><button class="brand" data-act="home" aria-label="Broken Squares home">${logoSVG()}<b>Broken Squares</b></button>${crumb?`<span class="crumb">/ ${esc(crumb)}</span>`:""}<span class="grow"></span>${right}</div>`;
+}
+function logoSVG(){return `<svg class="brand-mark" viewBox="0 0 6 6" aria-hidden="true"><polygon points="0,0 3,0 6,3 6,6 3,6 0,3" fill="var(--accent)"/><polygon points="3.25,0 6,0 6,2.75" fill="#F2B33D"/><polygon points="0,3.25 0,6 2.75,6" fill="#5D88F2"/></svg>`;}
+
+function render(){
+  const app=$("#app");
+  const v=S.view;
+  if(v==="home") app.innerHTML=homeView();
+  else if(v==="join") app.innerHTML=joinView();
+  else if(v==="host-list") app.innerHTML=hostListView();
+  else if(v==="solo"){ app.innerHTML=soloShell(); update(); }
+  else if(v==="play"){ app.innerHTML=playShell(); update(); }
+  else if(v==="observe"){ app.innerHTML=observeShell(); update(); }
+  else if(v==="host"){ app.innerHTML=hostShell(); update(); }
+}
+function update(){
+  if(S.drag){S.pendingRender=true;return;}
+  const v=S.view;
+  if(v==="solo") updateSolo();
+  else if(v==="play") updatePlay();
+  else if(v==="observe") updateObserve();
+  else if(v==="host") updateHost();
+  else if(v==="join") { const g=$("#teamsgrid"); if(g&&S.code){ g.innerHTML=teamsGrid(); } else { const el=$("#joinbody"); if(el) el.innerHTML=joinBody(); } }
+}
+
+/* ---- Home ---- */
+function heroDemo(){
+  // A finished square 1 beside scattered pieces: the exercise in one picture.
+  const demo=[
+    {team:1,idx:0,letter:"B",home:5,owner:1,rot:0,flip:false,x:1,y:2,z:1},
+    {team:1,idx:1,letter:"A",home:2,owner:1,rot:0,flip:false,x:4,y:2,z:2},
+    {team:1,idx:2,letter:"A",home:3,owner:1,rot:2,flip:false,x:1,y:5,z:3},
+    {team:2,idx:3,letter:"C",home:2,owner:1,rot:1,flip:false,x:9,y:1,z:4},
+    {team:3,idx:4,letter:"F",home:4,owner:1,rot:0,flip:false,x:15,y:2,z:5},
+    {team:4,idx:5,letter:"G",home:5,owner:1,rot:0,flip:false,x:10,y:6,z:6},
+    {team:6,idx:6,letter:"J",home:3,owner:1,rot:1,flip:false,x:12,y:4,z:7}
+  ];
+  return boardSVG(demo,{});
+}
+function homeView(){
+  const live=S.liveReady;
+  const liveNote=!S.liveChecked?`<p class="notice info small">Connecting to the game…</p>`:live?"":accessCard();
+  return `${topbar("")}
+  <section class="hero">
+    <div class="stack">
+      <span class="eyebrow">A silent cooperation exercise · teams of five</span>
+      <h1>Five squares.<br>No words.</h1>
+      <p class="lede">Each player opens an envelope of cut pieces. The team succeeds only when all five players have a perfect 6-inch square in front of them. You can give pieces away. You can't ask, point, or take.</p>
+    </div>
+    <div class="hero-mat">${heroDemo()}</div>
+  </section>
+  ${liveNote}
+  ${S.me&&S.code?`<div class="notice info row" style="justify-content:space-between"><span>${S.me.observer?"You're observing "+teamName(S.me.team):"You're seated at "+teamName(S.me.team)+", seat "+S.me.seat}.</span><button class="btn sm primary" data-act="resume">Return to the table</button></div>`:""}
+  <section class="entries" style="margin-top:16px">
+    <button class="entry" data-act="join">
+      <span class="eyebrow">Players &amp; observers</span><span class="k">Join a session</span>
+      <span class="muted small">Scan the facilitator's QR code or type the 4-letter code. No account or app needed.</span>
+      <span class="go">Join →</span></button>
+    <button class="entry" data-act="host-list" ${!live?"disabled":""}>
+      <span class="eyebrow">Facilitator</span><span class="k">Run a session</span>
+      <span class="muted small">Set the number of teams, give the start signal, watch every table and lead the debrief.</span>
+      <span class="go">Set up →</span></button>
+    <button class="entry" data-act="solo">
+      <span class="eyebrow">Anyone</span><span class="k">Solo practice</span>
+      <span class="muted small">Play all five seats on one screen to learn the controls or demo the exercise on a projector.</span>
+      <span class="go">Practise →</span></button>
+  </section>
+  <section class="rules">
+    <div class="panel stack"><h2>Rules for players</h2>
+      <ol class="rulelist">
+        <li>Nobody speaks. The app has no chat.</li>
+        <li>You may not ask for a piece or signal that you want one.</li>
+        <li>You may give any of your pieces to a teammate, even ones already in your square.</li>
+        <li>You can't take pieces, and there is no shared pile in the middle.</li>
+        <li>You're done when every seat on your team shows a complete square.</li>
+      </ol></div>
+    <div class="panel stack"><h2>How to move pieces</h2>
+      <ul class="rulelist">
+        <li><b>Drag</b> a piece onto the dashed 6 × 6 square.</li>
+        <li><b>Tap</b> a piece to select it, tap it again to rotate. Use <b>Flip</b> to turn it over.</li>
+        <li><b>Give</b> by dragging a piece onto a teammate's card, or select it and press their seat number.</li>
+        <li>Keyboard: Tab to a piece, arrows to move, R rotate, F flip, 1–5 give.</li>
+      </ul></div>
+  </section>
+  <p class="credit">Based on the Broken Squares exercise originally developed by Dr. Alex Bavelas, as shared by the Center for Leadership &amp; Educational Equity (clee.org).</p>`;
+}
+
+/* ---- Join ---- */
+function joinView(){
+  return `${topbar("Join")}<div class="stack" id="joinbody">${joinBody()}</div>`;
+}
+function joinBody(){
+  if(S.code&&(!S.db||!S.liveChecked)) return `<h2>Joining session <span class="mono">${esc(S.code)}</span></h2>${accessCard(S.code)}`;
+  if(!S.code&&!S.db) return `<h2>Join a session</h2>${accessCard()}`;
+  if(!S.code){
+    const open=S.sessions.filter(s=>s.status!=="ended");
+    return `<div class="panel stack" style="max-width:520px"><label class="field" for="codein">Have a code? Type it here<input type="text" id="codein" maxlength="4" autocapitalize="characters" autocomplete="off" placeholder="e.g. K7QX" style="text-transform:uppercase;font-family:var(--f-mono);letter-spacing:.15em"></label><div class="row"><button class="btn primary" data-act="code-join">Go to session</button></div></div>
+      ${accessCard()}
+      <h2>Choose a session</h2>
+      ${open.length?`<div class="list">${open.map(s=>`<div class="sess"><span class="dot" style="background:var(--accent)"></span><div class="grow"><b>${esc(s.title)}</b><div class="muted small">Code <span class="mono">${esc(s.id)}</span> · ${s.teams} team${s.teams>1?"s":""} · ${statusWord(s.status)}</div></div><button class="btn primary" data-act="pick-session" data-code="${esc(s.id)}">Open</button></div>`).join("")}</div>`
+      :`<div class="panel"><p class="muted">No sessions are open yet. Ask your facilitator to start one, then this list fills in on its own.</p></div>`}`;
+  }
+  const s=S.sessions.find(x=>x.id===S.code)||S.session;
+  if(!s) return `<div class="row"><button class="btn sm ghost" data-act="back-sessions">← All sessions</button></div><h2>Joining session <span class="mono">${esc(S.code)}</span></h2>${S.sessionMissing?`<div class="panel stack" style="max-width:620px;border-color:var(--warn)"><h3>No session with code ${esc(S.code)}</h3><p class="small">Check the code with your facilitator. It may have been closed, or the QR may be from an earlier session.</p></div>`:`<p class="muted">Finding the session…</p>`}${accessCard()}`;
+  return `<div class="row"><button class="btn sm ghost" data-act="back-sessions">← All sessions</button></div>
+    ${accessCard()}
+    <div><h2>${esc(s.title)}</h2><p class="muted small">Code <span class="mono">${esc(s.id)}</span> · ${statusWord(s.status)}</p></div>
+    <div class="panel stack" style="max-width:520px"><label class="field" for="nick">Your name, as teammates will see it<input type="text" id="nick" maxlength="24" value="${esc(S.nick)}" placeholder="e.g. Mei Ling" autocomplete="nickname"></label>
+    <div class="row"><button class="btn primary" data-act="auto-seat" ${!S.liveReady?"disabled":""}>${S.joinTeam?"Seat me on "+teamName(S.joinTeam):"Seat me anywhere"}</button><span class="hint">or pick a seat below</span></div></div>
+    <div class="teams" id="teamsgrid">${teamsGrid()}</div>`;
+}
+function teamsGrid(){
+  const s=S.sessions.find(x=>x.id===S.code)||S.session; if(!s) return "";
+  const teams=[];
+  const only=S.joinTeam&&S.joinTeam<=s.teams?S.joinTeam:null;
+  for(let t=1;t<=s.teams;t++){
+    if(only&&t!==only) continue;
+    const set=setOf(t);
+    let seats="";
+    for(let n=1;n<=5;n++){
+      const d=S.seats["t"+t+"s"+n]; const taken=d&&d.uid; const mine=taken&&d.uid===S.uid;
+      seats+=`<button class="seat ${taken?"taken":""} ${mine?"mine":""}" ${taken&&!mine?"disabled":""} data-act="claim" data-team="${t}" data-seat="${n}" aria-label="${teamName(t)} seat ${n}${taken?", taken by "+esc(d.nick):", open"}"><span class="n">${n}</span><span class="who">${taken?esc(d.nick):"Open"}</span></button>`;
+    }
+    teams.push(`<div class="team"><div class="team-h"><span class="dot" style="background:${set.c}"></span><b>${teamName(t)}</b><span class="muted small">${set.name} set</span></div><div class="seats">${seats}</div><button class="btn sm" data-act="observe-team" data-team="${t}">Observe this team</button></div>`);
+  }
+  return teams.join("")+(only?`<div class="row"><button class="btn sm ghost" data-act="all-teams">Show all teams</button></div>`:"");
+}
+function statusWord(st){return {lobby:"Waiting to start",running:"In play",paused:"Paused",ended:"Ended"}[st]||st;}
+
+/* ---- Host list ---- */
+function hostListView(){
+  const mine=S.sessions.filter(s=>s.hosts&&s.hosts[S.uid]);
+  return `${topbar("Facilitator")}
+  <div class="cols">
+    <div class="panel stack"><h2>New session</h2>
+      <label class="field" for="stitle">Session name<input type="text" id="stitle" maxlength="60" placeholder="e.g. Leadership offsite, Nov 2026"></label>
+      <label class="field" for="steams">Number of teams (5 players each)<input type="number" id="steams" min="1" max="20" value="4"></label>
+      <fieldset class="stack" style="border:1px solid var(--line);border-radius:8px;padding:12px;margin:0"><legend class="small" style="font-weight:600;padding:0 4px">How the envelopes are dealt</legend>
+        <label class="row small" for="deal-trap" style="align-items:flex-start;flex-wrap:nowrap"><input type="radio" name="deal" id="deal-trap" value="trap" checked style="margin-top:4px"><span><b>Trap seat</b> (recommended). Seat 3 can make a square from their own envelope in seconds, but it's the wrong square. The team only finishes if seat 3 breaks it up and gives pieces away.</span></label>
+        <label class="row small" for="deal-classic" style="align-items:flex-start;flex-wrap:nowrap"><input type="radio" name="deal" id="deal-classic" value="classic" style="margin-top:4px"><span><b>Classic</b>. The original split from the instruction sheet. Nobody can finish alone.</span></label>
+      </fieldset>
+      <label class="field" for="spin">Facilitator PIN (4–8 digits)<input type="text" id="spin" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="e.g. 2468"></label>
+      <p class="hint">The PIN lets you, or a co-facilitator, run this session from another device. Players never need it.</p>
+      <div class="row"><button class="btn primary" data-act="create">Create session</button></div></div>
+    <div class="panel stack"><h2>Your sessions</h2>
+      <div class="stack" style="gap:8px;padding-bottom:12px;border-bottom:1px solid var(--line)"><span class="small" style="font-weight:600">Run a session from this device</span>
+        <div class="row" style="flex-wrap:nowrap"><input type="text" id="mcode" maxlength="4" placeholder="Code" autocomplete="off" style="text-transform:uppercase;font-family:var(--f-mono);letter-spacing:.12em"><input type="text" id="mpin" inputmode="numeric" maxlength="8" placeholder="PIN" autocomplete="off"><button class="btn" data-act="claim-host">Open</button></div></div>
+      ${mine.length?`<div class="list">${mine.map(s=>`<div class="sess"><div class="grow"><b>${esc(s.title)}</b><div class="muted small"><span class="mono">${esc(s.id)}</span> · ${s.teams} teams · ${statusWord(s.status)}</div></div><button class="btn sm" data-act="manage" data-code="${esc(s.id)}">Manage</button></div>`).join("")}</div>`:`<p class="muted small">Sessions you create appear here.</p>`}
+    </div></div>`;
+}
+
+/* ---- Play (live player) ---- */
+function playShell(){
+  const t=S.me.team; const set=setOf(t);
+  return `${topbar(S.session?S.session.title:"Session",`<button class="btn sm" data-act="leave">Leave seat</button>`)}
+  <div class="playhead"><span class="dot" style="background:${set.c};width:16px;height:16px"></span>
+    <div class="grow"><h2>${teamName(t)} · Seat ${S.me.seat}</h2><div class="muted small">Your envelope is marked <b>${S.me.seat}</b>. Pieces show the envelope they came from.</div></div>
+    <div style="text-align:right"><div class="clock" data-clock="${t}">00:00</div><div class="small muted" data-clocklabel="${t}"></div></div></div>
+  <div class="silence"><span>No talking</span><span>No asking or signalling</span><span>Give only, never take</span></div>
+  <div id="banner"></div>
+  <div class="mates" id="mates"></div>
+  <div class="boardwrap" id="boardwrap"></div>
+  <div id="actions"></div>`;
+}
+function bannerHTML(team,ownDone){
+  const s=S.view==="solo"?null:S.session;
+  const done=teamDoneAt(team);
+  if(done) return `<div class="banner win solved"><span class="big">All five squares</span><span>${teamName(team)} finished in <span class="mono">${fmt(done-(s?s.startedAt:S.solo.startedAt))}</span>. Stay silent until the facilitator calls time.</span></div>`;
+  if(s){
+    if(s.status==="lobby"||!s.startedAt) return `<div class="banner wait">Waiting for the facilitator's signal. Look at your pieces, but they stay locked until the start.</div>`;
+    const c=clockFor(team); if(c.count) return `<div class="banner go"><span class="big">Starting in ${c.count}</span><span>Silence from now.</span></div>`;
+    if(s.status==="paused") return `<div class="banner wait">The facilitator has paused the round. Pieces are locked.</div>`;
+    if(s.status==="ended") return `<div class="banner wait">Time is up. Pieces are locked for the debrief.</div>`;
+  }
+  if(ownDone) return `<div class="banner wait"><b>Your square is complete.</b> <span class="muted">Your team finishes only when all five are complete.</span></div>`;
+  return "";
+}
+function matesHTML(team,mySeat,pcsFor,nickFor){
+  let h="";
+  for(let n=1;n<=5;n++){
+    if(n===mySeat) continue;
+    const pcs=pcsFor(n); const st=squareStatus(pcs);
+    const target=S.selected&&canPlay();
+    h+=`<div class="mate ${target?"target":""}" data-give="${n}" ${target?`role="button" tabindex="0" aria-label="Give selected piece to seat ${n}"`:""}>
+      <div class="mate-h"><span class="n">${n}</span><span class="nm">${esc(nickFor(n))}</span>${st.done?`<span class="pill good">Square</span>`:""}</div>
+      ${boardSVG(pcs,{mini:true})}
+      ${target?`<span class="give">Give here</span>`:""}</div>`;
+  }
+  return h;
+}
+function actionsHTML(myCount){
+  const p=S.selected&&curPieces()[S.selected];
+  if(!canPlay()) return "";
+  if(!p) return `<div class="actionbar"><span class="hint" style="flex:1;min-width:200px">Drag pieces onto the square. Tap a piece to select it, then rotate, flip or give it away. ${myCount===0?"You have no pieces right now.":""}</span><button class="btn sm" data-act="clear-square" ${myCount===0?"disabled":""}>Clear my square</button></div>`;
+  let gives=""; for(let n=1;n<=5;n++){ if(n!==p.owner) gives+=`<button class="btn sm" data-act="give" data-seat="${n}" aria-label="Give to seat ${n}">${n}</button>`; }
+  return `<div class="actionbar"><span class="lbl">Piece ${p.home}</span><button class="btn sm" data-act="rotate">↻ Rotate</button><button class="btn sm" data-act="flip">⇋ Flip</button><span class="sep"></span><span class="lbl">Give to seat</span>${gives}<span class="sep"></span><button class="btn sm" data-act="clear-square">Clear my square</button><button class="btn sm ghost" data-act="deselect">Done</button></div>`;
+}
+function updatePlay(){
+  if(!S.me) return;
+  const t=S.me.team, seat=S.me.seat;
+  const mine=piecesOf(t,seat); const st=squareStatus(mine);
+  $("#banner").innerHTML=bannerHTML(t,st.done);
+  $("#mates").innerHTML=matesHTML(t,seat,n=>piecesOf(t,n),n=>{const d=S.seats["t"+t+"s"+n];return d&&d.uid?d.nick:"Empty seat";});
+  $("#boardwrap").innerHTML=boardSVG(mine,{portrait:isPortrait(),interactive:true,playable:canPlay(),id:"myboard"});
+  $("#actions").innerHTML=actionsHTML(mine.length);
+}
+
+/* ---- Solo ---- */
+function startSolo(){
+  const pcs={}; teamTemplate(1,"trap").forEach(p=>{pcs[pkey(1,p.idx)]={...p};});
+  S.solo={pieces:pcs,events:[],startedAt:null,doneAt:null,seat:1}; S._sq={};
+  [1,2,3,4,5].forEach(n=>S._sq["1:"+n]=false);
+}
+function soloShell(){
+  return `${topbar("Solo practice",`<button class="btn sm" data-act="ask-solo">Reset all seats</button>`)}
+  <div class="playhead"><span class="dot" style="background:${setOf(1).c};width:16px;height:16px"></span>
+    <div class="grow"><h2>Practice table</h2><div class="muted small">You control all five seats. Switch seats with the tabs; give pieces to move them between seats.</div></div>
+    <div style="text-align:right"><div class="clock" data-clock="1">00:00</div><div class="small muted" data-clocklabel="1"></div></div></div>
+  <div id="soloconfirm"></div>
+  <div class="tabs" id="seattabs" role="tablist"></div>
+  <div id="banner"></div>
+  <div class="mates" id="mates"></div>
+  <div class="boardwrap" id="boardwrap"></div>
+  <div id="actions"></div>`;
+}
+function updateSolo(){
+  const seat=S.solo.seat;
+  let tabs=""; for(let n=1;n<=5;n++){const d=squareStatus(soloPieces(n)).done; tabs+=`<button class="tab" role="tab" aria-selected="${n===seat}" data-act="solo-seat" data-seat="${n}">Seat ${n}${d?' <span class="pill good">✓</span>':""}</button>`;}
+  $("#seattabs").innerHTML=tabs;
+  const mine=soloPieces(seat); const st=squareStatus(mine);
+  $("#banner").innerHTML=bannerHTML(1,st.done);
+  $("#mates").innerHTML=matesHTML(1,seat,n=>soloPieces(n),()=>"");
+  $("#boardwrap").innerHTML=boardSVG(mine,{portrait:isPortrait(),interactive:true,playable:true,id:"myboard"});
+  $("#actions").innerHTML=actionsHTML(mine.length);
+}
+
+/* ---- Observer ---- */
+const OBS_QS=[
+  "Who is willing to give away pieces?",
+  "Does anyone finish their own square and then step back from the problem?",
+  "Is anyone struggling with their pieces yet unwilling to give any away?",
+  "How many people are actively putting pieces together?",
+  "What is the level of frustration and anxiety?",
+  "Is there a turning point where the group begins to cooperate?",
+  "Does anyone break the rules by talking or pointing to help others?"
+];
+const TALLIES=[["talk","Talking"],["point","Pointing or gesturing"],["ask","Asking for a piece"],["take","Taking a piece"]];
+function seatStats(team){
+  const s=S.session; const evs=S.events.filter(e=>e.team===team);
+  const tnow=s&&s.status==="ended"?s.endedAt:now();
+  const done=teamDoneAt(team);
+  const rows=[];
+  for(let n=1;n<=5;n++){
+    const pcs=piecesOf(team,n); const st=squareStatus(pcs);
+    const gave=evs.filter(e=>e.type==="give"&&e.from===n); const got=evs.filter(e=>e.type==="give"&&e.to===n);
+    const sq=evs.filter(e=>e.type==="square"&&e.seat===n).pop();
+    const lastGive=gave.length?gave[gave.length-1].t:null;
+    let flag="";
+    if(st.done&&!done&&!GOOD_SQUARES.has(recipe(pcs))) flag="Holding a dead-end square. The team can't finish until it's broken up";
+    else if(s&&s.startedAt&&!done&&s.status!=="lobby"){
+      if(st.done&&sq&&(!lastGive||lastGive<sq.t)&&tnow-sq.t>60000) flag="Holding a finished square, no gives since";
+      else if(!st.done&&gave.length===0&&tnow-s.startedAt>180000) flag="Hasn't given any pieces yet";
+    }
+    const d=S.seats["t"+team+"s"+n];
+    rows.push({n,nick:d&&d.uid?d.nick:"Empty",st,gave:gave.length,got:got.length,pieces:pcs.length,sqAt:sq&&st.done?sq.t:null,flag,dead:st.done&&!GOOD_SQUARES.has(recipe(pcs))});
+  }
+  return rows;
+}
+function observeShell(){
+  const t=S.obsTeam;
+  const hostView=isHost();
+  let switcher="";
+  if(S.session){ for(let i=1;i<=S.session.teams;i++) switcher+=`<button class="tab" aria-selected="${i===t}" data-act="obs-team" data-team="${i}"><span class="dot" style="background:${setOf(i).c}"></span>${teamName(i)}</button>`; }
+  return `${topbar(S.session?S.session.title:"Observer",hostView?`<button class="btn sm" data-act="to-host">← Facilitator view</button>`:`<button class="btn sm" data-act="leave">Leave</button>`)}
+  <div class="playhead"><span class="dot" style="background:${setOf(t).c};width:16px;height:16px"></span>
+    <div class="grow"><span class="eyebrow">Observer &amp; judge</span><h2>${teamName(t)}</h2></div>
+    <div style="text-align:right"><div class="clock" data-clock="${t}">00:00</div><div class="small muted" data-clocklabel="${t}"></div></div></div>
+  ${hostView||!S.me?`<div class="tabs">${switcher}</div>`:""}
+  <div id="banner"></div>
+  <div class="cols">
+    <div class="stack">
+      <div class="boards5" id="obsboards"></div>
+      <div class="panel stack"><h3>Seat by seat</h3><div class="tbl-wrap" id="obsstats"></div></div>
+      <div class="panel stack"><h3>Gives and squares, in order</h3><div class="log" id="obslog"></div></div>
+    </div>
+    <div class="stack">
+      <div class="panel stack"><h3>Rule breaks seen</h3><p class="hint">Tap each time you see one. Players can't do these in the app, so watch the room.</p><div class="tally" id="tally"></div></div>
+      <div class="panel stack" id="obsnotes"><h3>What to look for</h3>
+        ${OBS_QS.map((q,i)=>`<div class="q"><span class="qn">${i+1}. ${esc(q)}</span><textarea id="q${i+1}" data-note="q${i+1}" placeholder="Notes"></textarea></div>`).join("")}
+        <span class="hint" id="notesaved"></span></div>
+    </div>
+  </div>`;
+}
+function updateObserve(){
+  const t=S.obsTeam;
+  $("#banner").innerHTML=bannerObs(t);
+  const rows=seatStats(t);
+  $("#obsboards").innerHTML=rows.map(r=>`<div class="bcard"><div class="mate-h"><span class="n">${r.n}</span><span class="nm">${esc(r.nick)}</span>${r.dead?`<span class="pill bad">Dead end</span>`:r.st.done?`<span class="pill good">Square</span>`:`<span class="mono small muted">${Math.round(r.st.fill*100)}%</span>`}</div>${boardSVG(piecesOf(t,r.n),{mini:true})}</div>`).join("");
+  $("#obsstats").innerHTML=`<table><thead><tr><th>Seat</th><th>Player</th><th>Square</th><th>Pieces</th><th>Gave</th><th>Got</th><th>Watch for</th></tr></thead><tbody>${rows.map(r=>`<tr><td class="num">${r.n}</td><td>${esc(r.nick)}</td><td>${r.st.done?`<span class="pill good">Done${r.sqAt&&S.session&&S.session.startedAt?" "+fmt(r.sqAt-S.session.startedAt):""}</span>`:`<span class="mono">${Math.round(r.st.fill*100)}%</span>`}</td><td class="num">${r.pieces}</td><td class="num">${r.gave}</td><td class="num">${r.got}</td><td>${r.flag?`<span class="pill ${r.dead?"bad":"warn"}" style="white-space:normal">${esc(r.flag)}</span>`:""}</td></tr>`).join("")}</tbody></table>`;
+  const evs=S.events.filter(e=>e.team===t&&e.type!=="unsquare"); const st0=S.session&&S.session.startedAt;
+  $("#obslog").innerHTML=evs.length?evs.slice().reverse().map(e=>`<div><span class="t">${fmt(e.t-(st0||e.t))}</span><span>${evText(e)}</span></div>`).join(""):`<span class="muted">Nothing yet. Gives and finished squares appear here as they happen.</span>`;
+  const n=S.notes["t"+t]||{}; const tl=n.tallies||{};
+  $("#tally").innerHTML=TALLIES.map(([k,l])=>`<button data-act="tally" data-k="${k}"><span>${l}</span><b>${tl[k]||0}</b></button>`).join("");
+  updateNotesIfIdle();
+}
+function bannerObs(t){
+  const s=S.session; if(!s) return "";
+  const done=teamDoneAt(t);
+  if(done) return `<div class="banner win"><span class="big">Finished</span><span>${teamName(t)} completed all five squares in <span class="mono">${fmt(done-s.startedAt)}</span>.</span></div>`;
+  const trap=(s.deal||"classic")==="trap"?`<span class="small" style="font-weight:500">Seat ${TRAP_SEAT}'s envelope already makes a square, but the wrong one. Watch whether they notice, and whether they break it up and give pieces away.</span>`:"";
+  if(s.status==="lobby") return `<div class="banner wait">Waiting for the facilitator's start signal. ${trap}</div>`;
+  return trap?`<div class="banner wait">${trap}</div>`:"";
+}
+function evText(e){
+  if(e.type==="give") return `Seat ${e.from} gave a piece to seat ${e.to}`;
+  if(e.type==="square") return `Seat ${e.seat} completed a square`;
+  if(e.type==="done") return `<b>Team finished: all five squares</b>`;
+  return "";
+}
+let noteTimer=null, noteDirty={};
+function updateNotesIfIdle(){
+  if(S.view!=="observe") return;
+  const n=S.notes["t"+S.obsTeam]||{}; const a=n.answers||{};
+  document.querySelectorAll("[data-note]").forEach(el=>{ if(document.activeElement!==el&&!noteDirty[el.dataset.note]) el.value=a[el.dataset.note]||""; });
+}
+async function saveNotes(patch){
+  const flat={}; Object.entries(patch.answers||{}).forEach(([k,v])=>flat["answers/"+k]=String(v).slice(0,4000));
+  try{ await R(`notes/${S.code}/t${S.obsTeam}`).update(flat); return true; }
+  catch(e){ toast("Notes didn't save. Check your connection."); return false; }
+}
+function updateTally(){
+  const el=$("#tally"); if(!el) return;
+  const tl=(S.notes["t"+S.obsTeam]||{}).tallies||{};
+  el.innerHTML=TALLIES.map(([k,l])=>`<button data-act="tally" data-k="${k}"><span>${l}</span><b>${tl[k]||0}</b></button>`).join("");
+}
+
+/* ---- Host dashboard ---- */
+function hostShell(){
+  return `${topbar(S.session?S.session.title:"Facilitator",`<button class="btn sm" data-act="host-list">All sessions</button>`)}
+  <div id="hostbody"></div>`;
+}
+function updateHost(){
+  const s=S.session; const el=$("#hostbody"); if(!el) return;
+  if(!s){el.innerHTML=`<p class="muted">Loading session…</p>`;return;}
+  const teams=[]; let finished=0, seated=0;
+  for(let t=1;t<=s.teams;t++){
+    const done=teamDoneAt(t); if(done) finished++;
+    const prog=[1,2,3,4,5].map(n=>squareStatus(piecesOf(t,n)).done);
+    const deadSeats=[1,2,3,4,5].filter((n,i)=>prog[i]&&!GOOD_SQUARES.has(recipe(piecesOf(t,n))));
+    const gives=S.events.filter(e=>e.team===t&&e.type==="give").length;
+    let names=""; for(let n=1;n<=5;n++){const d=S.seats["t"+t+"s"+n]; if(d&&d.uid) seated++; names+=d&&d.uid?`<button class="seat taken ${prog[n-1]?"done":""}" style="cursor:pointer" data-act="free-seat" data-seat="t${t}s${n}" title="Free this seat" aria-label="${teamName(t)} seat ${n}, ${esc(d.nick)}. Free this seat"><span class="n">${n}</span><span class="who">${esc(d.nick)}</span></button>`:`<div class="seat ${prog[n-1]?"done":""}" style="cursor:default"><span class="n">${n}</span><span class="who">Open</span></div>`;}
+    teams.push(`<div class="team"><div class="team-h"><span class="dot" style="background:${setOf(t).c}"></span><b>${teamName(t)}</b>${done?`<span class="pill good">Done ${fmt(done-s.startedAt)}</span>`:s.startedAt?`<span class="mono small">${prog.filter(Boolean).length}/5</span>`:""}</div>
+      <div class="prog" aria-label="${prog.filter(Boolean).length} of 5 squares">${prog.map(x=>`<i class="${x?"on":""}"></i>`).join("")}</div>
+      <div class="seats">${names}</div>
+      ${deadSeats.length&&!done?`<span class="pill bad" style="white-space:normal">Seat ${deadSeats.join(", ")} holding a dead-end square</span>`:""}
+      <div class="row" style="justify-content:space-between"><span class="small muted">${gives} give${gives===1?"":"s"}</span><span class="row" style="gap:6px"><button class="btn sm ghost" data-act="ask" data-what="team:${t}">Reset</button><button class="btn sm" data-act="qr" data-team="${t}" aria-label="Show QR code for ${teamName(t)}">QR</button><button class="btn sm" data-act="obs-from-host" data-team="${t}">Watch table</button></span></div></div>`);
+  }
+  const st=s.status;
+  let controls="";
+  if(st==="lobby") controls=`<button class="btn primary" data-act="status" data-st="running">Give the start signal</button>`;
+  if(st==="running") controls=`<button class="btn" data-act="status" data-st="paused">Pause</button><button class="btn" data-act="ask" data-what="end">End round</button>`;
+  if(st==="paused") controls=`<button class="btn primary" data-act="status" data-st="running">Resume</button><button class="btn" data-act="ask" data-what="end">End round</button>`;
+  if(st!=="ended") controls+=`<button class="btn" data-act="add-team">Add a team</button>`;
+  controls+=`<button class="btn ${st==="ended"?"primary":""}" data-act="ask" data-what="reset">${st==="ended"?"Reset for a new round":"Reset all teams"}</button>`;
+  if(st==="ended"||st==="lobby") controls+=`<button class="btn ghost danger" data-act="ask" data-what="delete">Delete session</button>`;
+  const C=S.confirm||"";
+  let cmsg="",cbtn="",cact="",cdata="";
+  if(C==="end"){cmsg="End the round for every team and lock all pieces?";cbtn="End round";cact="do-end";}
+  else if(C==="reset"){cmsg="Put every team's pieces back in their envelopes, clear the log and notes, and return everyone to the waiting screen?";cbtn="Reset all";cact="do-reset";}
+  else if(C==="delete"){cmsg="Delete this session and everything in it? Players will lose their seats. This can't be undone.";cbtn="Delete session";cact="do-delete";}
+  else if(C.startsWith("team:")){const ct=+C.slice(5);cmsg=`Put ${teamName(ct)}'s pieces back in their starting envelopes and clear that team's log and observer notes? Other teams keep playing.`;cbtn="Reset "+teamName(ct);cact="do-reset-team";cdata=`data-team="${ct}"`;}
+  else if(C.startsWith("free:")){const id=C.slice(5);const d=S.seats[id]||{};const m=/t(\d+)s(\d)/.exec(id)||[];cmsg=`Free ${teamName(+m[1])} seat ${m[2]}${d.nick?" ("+esc(d.nick)+")":""}? Their pieces stay on the table for whoever takes the seat next.`;cbtn="Free seat";cact="do-free";cdata=`data-seat="${esc(id)}"`;}
+  const confirmBox=C?`<div class="confirm"><span>${cmsg}</span><button class="btn danger sm" data-act="${cact}" ${cdata}>${cbtn}</button><button class="btn sm" data-act="cancel-ask">Cancel</button></div>`:"";
+  const tabs=`<div class="tabs"><button class="tab" aria-selected="${S.hostTab==="teams"}" data-act="host-tab" data-tab="teams">Tables</button><button class="tab" aria-selected="${S.hostTab==="debrief"}" data-act="host-tab" data-tab="debrief">Results &amp; debrief</button></div>`;
+  el.innerHTML=`<div class="panel stack" style="margin-bottom:14px">
+      <div class="row" style="justify-content:space-between;align-items:flex-start">
+        <div class="qrbox"><div class="qr" style="width:132px">${qrSVG(joinLink(s.id))}</div>
+          <div class="stack" style="gap:6px"><span class="eyebrow">Scan to join · session code</span><div class="clock">${esc(s.id)}</div>
+          <p class="small muted" style="max-width:34ch">Players scan with their phone camera, then pick a seat. Each team card has its own QR. Tap a player's seat to free it.</p>
+          <div class="row"><button class="btn sm primary" data-act="qr">Show QR full screen</button><button class="btn sm" data-act="copy-link" data-url="${esc(joinLink(s.id))}">Copy link</button></div></div></div>
+        <div style="text-align:right"><span class="pill ${st==="running"?"live":st==="ended"?"":"warn"}">${statusWord(st)}</span><div class="clock" data-clock="">${fmt(clockFor(null).ms)}</div><div class="small muted">${seated} of ${s.teams*5} seats filled · ${finished} of ${s.teams} teams done</div></div>
+      </div>
+      <div class="row">${controls}</div>${confirmBox}
+      ${s.deal==="trap"?`<p class="hint">Trap seat deal: seat ${TRAP_SEAT} on every team can build a square from their own envelope, but keeping it blocks the team. Don't tell players.</p>`:""}
+      ${st==="lobby"?`<p class="hint">When you start, every screen counts down 3 seconds and then unlocks. Read the rules aloud first; once the countdown starts, nobody speaks.</p>`:""}
+    </div>${tabs}
+    ${S.hostTab==="teams"?`<div class="teams">${teams.join("")}</div>`:debriefHTML()}`;
+}
+function debriefHTML(){
+  const s=S.session; const rows=[];
+  for(let t=1;t<=s.teams;t++){
+    const done=teamDoneAt(t); const evs=S.events.filter(e=>e.team===t);
+    const gives=evs.filter(e=>e.type==="give"); const firstGive=gives[0];
+    const sq=[1,2,3,4,5].filter(n=>squareStatus(piecesOf(t,n)).done).length;
+    const n=S.notes["t"+t]||{}; const tl=n.tallies||{}; const breaks=Object.values(tl).reduce((a,b)=>a+(b||0),0);
+    rows.push(`<tr><td><span class="dot" style="background:${setOf(t).c}"></span> ${teamName(t)}</td><td class="num">${done?fmt(done-s.startedAt):"—"}</td><td class="num">${sq}/5</td><td class="num">${gives.length}</td><td class="num">${firstGive&&s.startedAt?fmt(firstGive.t-s.startedAt):"—"}</td><td class="num">${breaks}</td></tr>`);
+  }
+  return `<div class="cols"><div class="panel stack"><h3>Results by team</h3><div class="tbl-wrap"><table><thead><tr><th>Team</th><th>Finish time</th><th>Squares</th><th>Gives</th><th>First give</th><th>Rule breaks</th></tr></thead><tbody>${rows.join("")}</tbody></table></div><p class="hint">Rule breaks come from the observers' tallies. Open a table to read its observer notes.</p></div>
+  <div class="panel stack debrief"><h3>Debrief questions</h3><ol>
+    <li>How did it feel to see a piece you needed sitting in front of someone else?</li>
+    <li>Who gave pieces away early? What changed for the team when they did?</li>
+    <li>Did anyone finish a square and then step back? What did that do to the rest of the table?</li>
+    ${s.deal==="trap"?`<li>Seat ${TRAP_SEAT}, you had a square within seconds. When did you realise it was blocking the team? What did it take to break up something you'd already finished?</li>`:""}
+    <li>Was there a moment the group switched from “my square” to “our squares”? What caused it?</li>
+    <li>Where do we hold on to information or resources at work that another team needs?</li>
+    <li>What is one habit you will take back to your team this week?</li>
+  </ol></div></div>`;
+}
+
+/* ============ Events ============ */
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("[data-act]");
+  const mate=e.target.closest("[data-give]");
+  if(!b&&mate&&S.selected&&canPlay()){ givePiece(S.selected,+mate.dataset.give); return; }
+  if(!b) return;
+  const a=b.dataset.act;
+  if(a==="home"){ if(S.view==="play"||S.view==="observe"||S.view==="host"){ /* keep seat, just navigate */ } go("home"); return; }
+  if(a==="join"){ if(!S.me) S.code=null; S.joinTeam=null; go("join"); return; }
+  if(a==="host-list"){ if(!S.liveReady) return; go("host-list"); return; }
+  if(a==="resume"){ go(S.me.observer?"observe":"play"); return; }
+  if(a==="solo"){ startSolo(); go("solo"); return; }
+  if(a==="ask-solo"){ $("#soloconfirm").innerHTML=`<div class="confirm" style="margin-bottom:12px"><span>Put every piece back in its starting envelope and restart the clock?</span><button class="btn danger sm" data-act="solo-reset">Reset all seats</button><button class="btn sm" data-act="solo-cancel">Cancel</button></div>`; return; }
+  if(a==="solo-cancel"){ $("#soloconfirm").innerHTML=""; return; }
+  if(a==="solo-reset"){ startSolo(); S.fresh={}; S.selected=null; $("#soloconfirm").innerHTML=""; update(); toast("All seats reset."); return; }
+  if(a==="solo-seat"){ S.solo.seat=+b.dataset.seat; S.selected=null; update(); return; }
+  if(a==="pick-session"){ S.code=b.dataset.code; S.session=S.sessions.find(x=>x.id===S.code)||null; subscribeSession(S.code,{all:true}); render(); return; }
+  if(a==="back-sessions"){ clearSubs(); S.code=null; S.joinTeam=null; render(); return; }
+  if(a==="claim"){ if(!S.liveReady){toast("Not connected to the game yet. Check your connection and reload.");return;} const nk=$("#nick"); if(nk) S.nick=nk.value; const d=S.seats["t"+b.dataset.team+"s"+b.dataset.seat]; if(d&&d.uid===S.uid){ S.me={team:+b.dataset.team,seat:+b.dataset.seat}; lsSet("bs.me",{code:S.code,...S.me}); subscribeSession(S.code,{team:S.me.team}); go("play"); return;} claimSeat(S.code,+b.dataset.team,+b.dataset.seat); return; }
+  if(a==="auto-seat"){ const nk=$("#nick"); if(nk) S.nick=nk.value; const s=S.session||S.sessions.find(x=>x.id===S.code); if(!s) return;
+    for(let t=1;t<=s.teams;t++){ if(S.joinTeam&&t!==S.joinTeam) continue; for(let n=1;n<=5;n++){ const d=S.seats["t"+t+"s"+n]; if(!d||!d.uid){ claimSeat(S.code,t,n); return; } } }
+    toast(S.joinTeam?teamName(S.joinTeam)+" is full. Tap Show all teams to pick another.":"Every seat is taken. Ask the facilitator to add a team."); return; }
+  if(a==="code-join"){ const c=($("#codein").value||"").trim().toUpperCase(); if(!/^[A-Z0-9]{4}$/.test(c)){toast("Codes are 4 letters or numbers, like K7QX.");return;} openJoinLink({code:c,team:null}); return; }
+  if(a==="all-teams"){ S.joinTeam=null; update(); return; }
+  if(a==="qr"){ showQR(b.dataset.team?+b.dataset.team:null); return; }
+  if(a==="qr-close"){ hideQR(); return; }
+  if(a==="copy-link"){ const u=b.dataset.url; try{ await navigator.clipboard.writeText(u); toast("Link copied"); }catch(err){ const l=document.querySelector(".linkline"); if(l){const r=document.createRange();r.selectNodeContents(l);const sel=getSelection();sel.removeAllRanges();sel.addRange(r);} toast("Press Ctrl+C or ⌘C to copy the selected link."); } return; }
+  if(a==="observe-team"){ const t=+b.dataset.team; S.me={team:t,observer:true}; S.obsTeam=t; lsSet("bs.me",{code:S.code,team:t,observer:true}); subscribeSession(S.code,{team:t}); go("observe"); return; }
+  if(a==="leave"){ await releaseMySeat(); clearSubs(); lsSet("bs.me",null); S.me=null; S.code=null; S.session=null; go("home"); return; }
+  if(a==="create"){ const title=$("#stitle").value.trim(); const n=clamp(parseInt($("#steams").value,10)||1,1,20); const dl=(document.querySelector('input[name="deal"]:checked')||{}).value||"trap"; const pin=($("#spin").value||"").trim(); if(!/^\d{4,8}$/.test(pin)){toast("Choose a facilitator PIN of 4 to 8 digits.");$("#spin").focus();return;} b.disabled=true; await createSession(title,n,dl,pin); b.disabled=false; return; }
+  if(a==="claim-host"){ const c=($("#mcode").value||"").trim().toUpperCase(); const pin=($("#mpin").value||"").trim(); if(!/^[A-Z0-9]{4}$/.test(c)||!/^\d{4,8}$/.test(pin)){toast("Type the 4-letter session code and its PIN.");return;} claimHost(c,pin); return; }
+  if(a==="free-seat"){ S.confirm="free:"+b.dataset.seat; update(); return; }
+  if(a==="do-free"){ const id=b.dataset.seat; S.confirm=null; update(); freeSeat(id); return; }
+  if(a==="do-delete"){ S.confirm=null; deleteSession(); return; }
+  if(a==="manage"){ lsSet("bs.me",{code:b.dataset.code,host:true}); S.session=S.sessions.find(x=>x.id===b.dataset.code); subscribeSession(b.dataset.code,{all:true}); S.hostTab="teams"; go("host"); return; }
+  if(a==="status"){ setStatus(b.dataset.st); return; }
+  if(a==="ask"){ S.confirm=b.dataset.what; if(S.view!=="host"){ go("host"); return; } update(); window.scrollTo({top:0,behavior:"smooth"}); return; }
+  if(a==="cancel-ask"){ S.confirm=null; update(); return; }
+  if(a==="do-end"){ S.confirm=null; await setStatus("ended"); return; }
+  if(a==="do-reset"){ S.confirm=null; update(); await resetSession(); return; }
+  if(a==="do-reset-team"){ S.confirm=null; update(); await resetTeam(+b.dataset.team); return; }
+  if(a==="clear-square"){ clearMySquare(); return; }
+  if(a==="add-team"){ addTeam(); return; }
+  if(a==="host-tab"){ S.hostTab=b.dataset.tab; update(); return; }
+  if(a==="obs-from-host"){ S.obsTeam=+b.dataset.team; go("observe"); return; }
+  if(a==="obs-team"){ S.obsTeam=+b.dataset.team; render(); return; }
+  if(a==="to-host"){ go("host"); return; }
+  if(a==="tally"){ const k=b.dataset.k; R(`notes/${S.code}/t${S.obsTeam}/tallies/${k}`).transaction(v=>(v||0)+1).catch(()=>toast("That tally didn't save.")); return; }
+  if(a==="rotate"){ rotateSel(); return; }
+  if(a==="flip"){ flipSel(); return; }
+  if(a==="give"){ if(S.selected) givePiece(S.selected,+b.dataset.seat); return; }
+  if(a==="deselect"){ S.selected=null; update(); return; }
+});
+document.addEventListener("input",e=>{
+  if(e.target.id==="nick"){ S.nick=e.target.value; return; }
+  const k=e.target.dataset&&e.target.dataset.note; if(!k) return;
+  noteDirty[k]=e.target.value; clearTimeout(noteTimer);
+  $("#notesaved")&&($("#notesaved").textContent="Saving…");
+  noteTimer=setTimeout(async()=>{const patch={answers:{...noteDirty}}; noteDirty={}; const ok=await saveNotes(patch); if(ok&&$("#notesaved")) $("#notesaved").textContent="Notes saved for everyone observing this team.";},900);
+});
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"&&!$("#qrov").hidden){hideQR();return;}
+  const mate=e.target.closest&&e.target.closest("[data-give]");
+  if(mate&&(e.key==="Enter"||e.key===" ")&&S.selected){e.preventDefault();givePiece(S.selected,+mate.dataset.give);return;}
+  const g=e.target.closest&&e.target.closest("#myboard .pc"); if(!g||!canPlay()) return;
+  const k=g.dataset.k; const p=curPieces()[k]; if(!p) return;
+  S.selected=k;
+  const portrait=isPortrait(); let [dx,dy]=toDisp(p,portrait); let moved=false;
+  if(e.key==="ArrowLeft"){dx--;moved=true;} if(e.key==="ArrowRight"){dx++;moved=true;} if(e.key==="ArrowUp"){dy--;moved=true;} if(e.key==="ArrowDown"){dy++;moved=true;}
+  if(moved){e.preventDefault(); const np=fromDisp(p,dx,dy,portrait); movePiece(k,{x:np.x,y:np.y}); refocus(k); return;}
+  if(e.key==="r"||e.key==="R"){e.preventDefault();rotateSel();refocus(k);return;}
+  if(e.key==="f"||e.key==="F"){e.preventDefault();flipSel();refocus(k);return;}
+  if(/^[1-5]$/.test(e.key)&&+e.key!==p.owner){e.preventDefault();givePiece(k,+e.key);return;}
+  if(e.key==="Escape"){S.selected=null;update();}
+  if(e.key==="Enter"||e.key===" "){e.preventDefault();update();refocus(k);}
+});
+function refocus(k){requestAnimationFrame(()=>{const el=document.querySelector(`#myboard .pc[data-k="${k}"]`);el&&el.focus();});}
+function rotateSel(){
+  const p=S.selected&&curPieces()[S.selected]; if(!p||!canPlay()) return;
+  const s0=shapeOf(p); const cx=p.x+s0.w/2, cy=p.y+s0.h/2;
+  const q={...p,rot:(p.rot+1)%4}; const s1=shapeOf(q);
+  movePiece(S.selected,{rot:q.rot,x:Math.round(cx-s1.w/2),y:Math.round(cy-s1.h/2)});
+}
+function flipSel(){
+  const p=S.selected&&curPieces()[S.selected]; if(!p||!canPlay()) return;
+  movePiece(S.selected,{flip:!p.flip,rot:(4-p.rot)%4});
+}
+
+/* ---- Drag ---- */
+function svgPt(svg,e){const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;return pt.matrixTransform(svg.getScreenCTM().inverse());}
+document.addEventListener("pointerdown",e=>{
+  const svg=e.target.closest&&e.target.closest("#myboard"); if(!svg) return;
+  const g=e.target.closest(".pc");
+  if(!g){ if(S.selected){S.selected=null;update();} return; }
+  if(!canPlay()) return;
+  const k=g.dataset.k; const p=curPieces()[k]; if(!p) return;
+  e.preventDefault();
+  const portrait=isPortrait(); const [dx,dy]=toDisp(p,portrait); const pt=svgPt(svg,e);
+  S.drag={k,svg,g,portrait,offX:pt.x-dx,offY:pt.y-dy,sx:e.clientX,sy:e.clientY,moved:false,over:null,id:e.pointerId};
+  try{svg.setPointerCapture(e.pointerId);}catch(_){}
+  svg.appendChild(g); // bring to front while dragging
+});
+document.addEventListener("pointermove",e=>{
+  const d=S.drag; if(!d||e.pointerId!==d.id) return;
+  if(!d.moved&&Math.hypot(e.clientX-d.sx,e.clientY-d.sy)<5) return;
+  d.moved=true; d.g.classList.add("dragging");
+  const pt=svgPt(d.svg,e); d.g.setAttribute("transform",`translate(${pt.x-d.offX} ${pt.y-d.offY})`);
+  const el=document.elementFromPoint(e.clientX,e.clientY); const m=el&&el.closest&&el.closest("[data-give]");
+  const over=m?+m.dataset.give:null;
+  if(over!==d.over){ document.querySelectorAll(".mate.hover").forEach(x=>x.classList.remove("hover")); if(m) m.classList.add("hover"); d.over=over; }
+});
+function endDrag(e,cancel){
+  const d=S.drag; if(!d||e.pointerId!==d.id) return;
+  S.drag=null;
+  const map=curPieces(); const p=map[d.k];
+  if(!p){update();return;}
+  if(cancel){update();return;}
+  if(!d.moved){
+    if(S.selected===d.k) rotateSel(); else { S.selected=d.k; update(); }
+    S.pendingRender=false; refocus(d.k); return;
+  }
+  if(d.over&&d.over!==p.owner){ givePiece(d.k,d.over); S.pendingRender=false; return; }
+  const pt=svgPt(d.svg,e); const np=fromDisp(p,pt.x-d.offX,pt.y-d.offY,d.portrait);
+  const z=Math.max(0,...Object.values(map).map(q=>q.z||0))+1;
+  S.selected=d.k; S.pendingRender=false;
+  movePiece(d.k,{x:np.x,y:np.y,z});
+}
+document.addEventListener("pointerup",e=>endDrag(e,false));
+document.addEventListener("pointercancel",e=>endDrag(e,true));
+
+let rz; window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>{if(["play","solo"].includes(S.view)) update();},150);});
+})();
+</script>
+</body>
+</html>

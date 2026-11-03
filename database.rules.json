@@ -1,0 +1,70 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "sessions": {
+      ".read": "auth != null",
+      ".indexOn": ["createdAt"],
+      "$code": {
+        ".write": "auth != null && (!data.exists() || data.child('hosts').child(auth.uid).val() === true)",
+        ".validate": "!newData.exists() || newData.hasChildren(['title', 'teams', 'status'])",
+        "title":  { ".validate": "newData.isString() && newData.val().length <= 60" },
+        "teams":  { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 40" },
+        "status": { ".validate": "newData.val() === 'lobby' || newData.val() === 'running' || newData.val() === 'paused' || newData.val() === 'ended'" },
+        "hosts": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && newData.val() === true && root.child('hostclaims').child($code).child($uid).val() === root.child('hostpins').child($code).val()"
+          }
+        }
+      }
+    },
+
+    "hostpins": {
+      "$code": {
+        ".write": "auth != null && !data.exists() && !root.child('sessions').child($code).exists()",
+        ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4,8}$/)"
+      }
+    },
+
+    "hostclaims": {
+      "$code": {
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.isString() && newData.val().length <= 8"
+        }
+      }
+    },
+
+    "seats": {
+      "$code": {
+        ".read": "auth != null",
+        "$seat": {
+          ".write": "auth != null && root.child('sessions').child($code).exists() && (!data.exists() || !data.child('uid').exists() || data.child('uid').val() === auth.uid || root.child('sessions').child($code).child('hosts').child(auth.uid).val() === true)",
+          ".validate": "!newData.exists() || (newData.child('uid').val() === auth.uid && newData.child('nick').isString() && newData.child('nick').val().length <= 24)"
+        }
+      }
+    },
+
+    "pieces": {
+      "$code": {
+        ".read": "auth != null",
+        ".write": "auth != null && root.child('sessions').child($code).exists()"
+      }
+    },
+
+    "events": {
+      "$code": {
+        ".read": "auth != null",
+        ".write": "auth != null && root.child('sessions').child($code).exists()"
+      }
+    },
+
+    "notes": {
+      "$code": {
+        ".read": "auth != null",
+        ".write": "auth != null && root.child('sessions').child($code).exists()"
+      }
+    }
+  }
+}
