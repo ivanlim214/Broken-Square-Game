@@ -430,7 +430,7 @@ function renderConn(){
     firebase.initializeApp(FIREBASE_CONFIG);
     FB.rdb=firebase.database(); S.db=true;
     R(".info/serverTimeOffset").on("value",s=>{FB.offset=s.val()||0;});
-    R(".info/connected").on("value",s=>{FB.connected=!!s.val(); if(FB.connected) FB.everConnected=true; renderConn();});
+    R(".info/connected").on("value",s=>{FB.connected=!!s.val(); if(FB.connected){ FB.everConnected=true; if(S.view==="play") markPresence(true); } renderConn();});
     const cur=firebase.auth().currentUser;
     const cred=cur?{user:cur}:await firebase.auth().signInAnonymously();
     S.uid=cred.user.uid; S.liveReady=true;
@@ -573,6 +573,16 @@ async function claimSeat(code,team,seat){
 async function releaseMySeat(){
   if(!S.me||S.me.observer||!S.code) return;
   try{ await R(`seats/${S.code}/t${S.me.team}s${S.me.seat}`).transaction(cur=>cur&&cur.uid===S.uid?null:undefined); }catch(e){}
+}
+// Presence: the seat stays reserved while a player is away; teammates and the facilitator see "Away".
+let presenceRef=null;
+function markPresence(on){
+  if(!FB.rdb||!S.code||!S.me||S.me.observer) return;
+  const ref=R(`seats/${S.code}/t${S.me.team}s${S.me.seat}/online`);
+  try{
+    if(on){ ref.onDisconnect().set(false); ref.set(true).catch(()=>{}); presenceRef=ref; }
+    else { ref.onDisconnect().cancel(); ref.set(false).catch(()=>{}); presenceRef=null; }
+  }catch(e){}
 }
 async function freeSeat(id){
   try{ await R(`seats/${S.code}/${id}`).remove(); toast("Seat freed. The player can scan again to rejoin."); }catch(e){toast("Couldn't free that seat.");}
@@ -738,7 +748,7 @@ function render(){
   else if(v==="join") app.innerHTML=joinView();
   else if(v==="host-list") app.innerHTML=hostListView();
   else if(v==="solo"){ app.innerHTML=soloShell(); update(); }
-  else if(v==="play"){ app.innerHTML=playShell(); update(); }
+  else if(v==="play"){ app.innerHTML=playShell(); update(); markPresence(true); }
   else if(v==="observe"){ app.innerHTML=observeShell(); update(); }
   else if(v==="host"){ app.innerHTML=hostShell(); update(); }
 }
@@ -779,7 +789,7 @@ function homeView(){
     <div class="hero-mat">${heroDemo()}</div>
   </section>
   ${liveNote}
-  ${S.me&&S.code?`<div class="notice info row" style="justify-content:space-between"><span>${S.me.observer?"You're observing "+teamName(S.me.team):"You're seated at "+teamName(S.me.team)+", seat "+S.me.seat}.</span><button class="btn sm primary" data-act="resume">Return to the table</button></div>`:""}
+  ${(()=>{const l=lsGet("bs.me"); if(!l||!l.code||l.host||!S.liveReady) return ""; return `<div class="notice info row" style="justify-content:space-between"><span>${l.observer?"You were observing "+teamName(l.team)+" in session "+esc(l.code):"Your seat is saved: "+teamName(l.team)+", seat "+l.seat+" in session "+esc(l.code)}.</span><button class="btn sm primary" data-act="resume">Return to the table</button></div>`;})()}
   <section class="entries" style="margin-top:16px">
     <button class="entry" data-act="join">
       <span class="eyebrow">Players &amp; observers</span><span class="k">Join a session</span>
@@ -881,7 +891,8 @@ function hostListView(){
 /* ---- Play (live player) ---- */
 function playShell(){
   const t=S.me.team; const set=setOf(t);
-  return `${topbar(S.session?S.session.title:"Session",`<button class="btn sm" data-act="leave">Leave seat</button>`)}
+  return `${topbar(S.session?S.session.title:"Session",`<button class="btn sm" data-act="leave-ask">Leave seat</button>`)}
+  <div id="leavebox"></div>
   <div class="playhead"><span class="dot" style="background:${set.c};width:16px;height:16px"></span>
     <div class="grow"><h2>${teamName(t)} · Seat ${S.me.seat}</h2><div class="muted small">Your envelope is marked <b>${S.me.seat}</b>. Pieces show the envelope they came from.</div></div>
     <div style="text-align:right"><div class="clock" data-clock="${t}">00:00</div><div class="small muted" data-clocklabel="${t}"></div></div></div>
@@ -929,7 +940,7 @@ function updatePlay(){
   const t=S.me.team, seat=S.me.seat;
   const mine=piecesOf(t,seat); const st=squareStatus(mine);
   $("#banner").innerHTML=bannerHTML(t,st.done);
-  $("#mates").innerHTML=matesHTML(t,seat,n=>piecesOf(t,n),n=>{const d=S.seats["t"+t+"s"+n];return d&&d.uid?d.nick:"Empty seat";},!!(S.session&&S.session.showTables));
+  $("#mates").innerHTML=matesHTML(t,seat,n=>piecesOf(t,n),n=>{const d=S.seats["t"+t+"s"+n];return d&&d.uid?d.nick+(d.online===false?" · away":""):"Empty seat";},!!(S.session&&S.session.showTables));
   $("#boardwrap").innerHTML=boardSVG(mine,{portrait:isPortrait(),interactive:true,playable:canPlay(),id:"myboard"});
   $("#actions").innerHTML=actionsHTML(mine.length);
 }
@@ -991,7 +1002,7 @@ function seatStats(team){
       else if(!st.done&&gave.length===0&&tnow-s.startedAt>180000) flag="Hasn't given any pieces yet";
     }
     const d=S.seats["t"+team+"s"+n];
-    rows.push({n,nick:d&&d.uid?d.nick:"Empty",st,gave:gave.length,got:got.length,pieces:pcs.length,sqAt:sq&&st.done?sq.t:null,flag,dead:st.done&&!GOOD_SQUARES.has(recipe(pcs))});
+    rows.push({n,nick:d&&d.uid?d.nick+(d.online===false?" (away)":""):"Empty",st,gave:gave.length,got:got.length,pieces:pcs.length,sqAt:sq&&st.done?sq.t:null,flag,dead:st.done&&!GOOD_SQUARES.has(recipe(pcs))});
   }
   return rows;
 }
@@ -1077,7 +1088,7 @@ function updateHost(){
     const prog=[1,2,3,4,5].map(n=>squareStatus(piecesOf(t,n)).done);
     const deadSeats=[1,2,3,4,5].filter((n,i)=>prog[i]&&!GOOD_SQUARES.has(recipe(piecesOf(t,n))));
     const gives=S.events.filter(e=>e.team===t&&e.type==="give").length;
-    let names=""; for(let n=1;n<=5;n++){const d=S.seats["t"+t+"s"+n]; if(d&&d.uid) seated++; names+=d&&d.uid?`<button class="seat taken ${prog[n-1]?"done":""}" style="cursor:pointer" data-act="free-seat" data-seat="t${t}s${n}" title="Free this seat" aria-label="${teamName(t)} seat ${n}, ${esc(d.nick)}. Free this seat"><span class="n">${n}</span><span class="who">${esc(d.nick)}</span></button>`:`<div class="seat ${prog[n-1]?"done":""}" style="cursor:default"><span class="n">${n}</span><span class="who">Open</span></div>`;}
+    let names=""; for(let n=1;n<=5;n++){const d=S.seats["t"+t+"s"+n]; if(d&&d.uid) seated++; names+=d&&d.uid?`<button class="seat taken ${prog[n-1]?"done":""}" style="cursor:pointer;${d.online===false?"opacity:.55":""}" data-act="free-seat" data-seat="t${t}s${n}" title="${d.online===false?"Away. ":""}Free this seat" aria-label="${teamName(t)} seat ${n}, ${esc(d.nick)}${d.online===false?", away":""}. Free this seat"><span class="n">${n}</span><span class="who">${d.online===false?"Away":esc(d.nick)}</span></button>`:`<div class="seat ${prog[n-1]?"done":""}" style="cursor:default"><span class="n">${n}</span><span class="who">Open</span></div>`;}
     teams.push(`<div class="team"><div class="team-h"><span class="dot" style="background:${setOf(t).c}"></span><b>${teamName(t)}</b>${done?`<span class="pill good">Done ${fmt(done-s.startedAt)}</span>`:s.startedAt?`<span class="mono small">${prog.filter(Boolean).length}/5</span>`:""}</div>
       <div class="prog" aria-label="${prog.filter(Boolean).length} of 5 squares">${prog.map(x=>`<i class="${x?"on":""}"></i>`).join("")}</div>
       <div class="seats">${names}</div>
@@ -1147,7 +1158,7 @@ document.addEventListener("click",async e=>{
   if(a==="home"){ if(S.view==="play"||S.view==="observe"||S.view==="host"){ /* keep seat, just navigate */ } go("home"); return; }
   if(a==="join"){ if(!S.me) S.code=null; S.joinTeam=null; go("join"); return; }
   if(a==="host-list"){ if(!S.liveReady) return; go("host-list"); return; }
-  if(a==="resume"){ go(S.me.observer?"observe":"play"); return; }
+  if(a==="resume"){ const l=lsGet("bs.me"); if(!l) return; await resumeLive(l); if(S.view==="home"){ lsSet("bs.me",null); toast("That seat is no longer yours. The facilitator may have freed it or reset the session."); render(); } return; }
   if(a==="solo"){ startSolo(); go("solo"); return; }
   if(a==="ask-solo"){ $("#soloconfirm").innerHTML=`<div class="confirm" style="margin-bottom:12px"><span>Put every piece back in its starting envelope and restart the clock?</span><button class="btn danger sm" data-act="solo-reset">Reset all seats</button><button class="btn sm" data-act="solo-cancel">Cancel</button></div>`; return; }
   if(a==="solo-cancel"){ $("#soloconfirm").innerHTML=""; return; }
@@ -1165,6 +1176,14 @@ document.addEventListener("click",async e=>{
   if(a==="qr-close"){ hideQR(); return; }
   if(a==="copy-link"){ const u=b.dataset.url; try{ await navigator.clipboard.writeText(u); toast("Link copied"); }catch(err){ const l=document.querySelector(".linkline"); if(l){const r=document.createRange();r.selectNodeContents(l);const sel=getSelection();sel.removeAllRanges();sel.addRange(r);} toast("Press Ctrl+C or ⌘C to copy the selected link."); } return; }
   if(a==="observe-team"){ const t=+b.dataset.team; S.me={team:t,observer:true}; S.obsTeam=t; lsSet("bs.me",{code:S.code,team:t,observer:true}); subscribeSession(S.code,{team:t}); go("observe"); return; }
+  if(a==="leave-ask"){ $("#leavebox").innerHTML=`<div class="panel stack" style="margin-bottom:12px;border-color:var(--accent)"><h3>Leaving your seat?</h3>
+      <div class="row" style="align-items:stretch">
+        <button class="btn primary" data-act="leave-keep" style="flex:1;min-width:220px;flex-direction:column;align-items:flex-start;text-align:left;padding:12px 14px"><span>Keep my seat</span><span class="small" style="font-weight:400;opacity:.9">Your seat and pieces stay as they are. Come back on this phone by scanning again or reopening the page.</span></button>
+        <button class="btn" data-act="leave-free" style="flex:1;min-width:220px;flex-direction:column;align-items:flex-start;text-align:left;padding:12px 14px"><span>Give up my seat</span><span class="small muted" style="font-weight:400">Someone else can take it. Your pieces stay on the table for them.</span></button>
+      </div><button class="btn sm ghost" data-act="leave-cancel" style="align-self:flex-start">Stay at the table</button></div>`; window.scrollTo({top:0,behavior:"smooth"}); return; }
+  if(a==="leave-cancel"){ $("#leavebox").innerHTML=""; return; }
+  if(a==="leave-keep"){ markPresence(false); clearSubs(); S.code=null; S.session=null; S.me=null; go("home"); toast("Your seat is saved. Scan the QR again or reopen this page to return."); return; }
+  if(a==="leave-free"){ markPresence(false); await releaseMySeat(); clearSubs(); lsSet("bs.me",null); S.me=null; S.code=null; S.session=null; go("home"); toast("You've given up your seat."); return; }
   if(a==="leave"){ await releaseMySeat(); clearSubs(); lsSet("bs.me",null); S.me=null; S.code=null; S.session=null; go("home"); return; }
   if(a==="create"){ const title=$("#stitle").value.trim(); const n=clamp(parseInt($("#steams").value,10)||1,1,20); const dl=(document.querySelector('input[name="deal"]:checked')||{}).value||"trap"; const pin=($("#spin").value||"").trim(); if(!/^\d{4,8}$/.test(pin)){toast("Choose a facilitator PIN of 4 to 8 digits.");$("#spin").focus();return;} b.disabled=true; await createSession(title,n,dl,pin); b.disabled=false; return; }
   if(a==="claim-host"){ const c=($("#mcode").value||"").trim().toUpperCase(); const pin=($("#mpin").value||"").trim(); if(!/^[A-Z0-9]{4}$/.test(c)||!/^\d{4,8}$/.test(pin)){toast("Type the 4-letter session code and its PIN.");return;} claimHost(c,pin); return; }
